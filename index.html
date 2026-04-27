@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audiya | 음악 추천</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="다크모드 전환" title="흑/백 전환"></button>
+
+    <header class="hero">
+      <p class="brand">AUDIYA</p>
+      <h1>취향과 감성을 함께 분석해 나만의 플레이리스트를 추천합니다.</h1>
+      <p class="hero-desc">
+        장르, 좋아하는 곡, 캡처 이미지, 기분/상태/색/계절 데이터를 조합해 개인화 추천을 제공하는 MVP 초안입니다.
+      </p>
+    </header>
+
+    <main class="workspace">
+      <section class="left-stack">
+        <section class="panel control-panel">
+          <h2>추천 입력</h2>
+
+          <div class="field-grid">
+            <div class="field-group">
+              <p class="label-head">선호 장르(복수 선택)</p>
+              <div class="option-group" data-type="multi" data-name="genre">
+                <button type="button" class="choice-btn" data-value="kpop">K-POP</button>
+                <button type="button" class="choice-btn" data-value="jpop">J-POP</button>
+                <button type="button" class="choice-btn" data-value="pop">POP</button>
+                <button type="button" class="choice-btn" data-value="hiphop">HIPHOP</button>
+                <button type="button" class="choice-btn" data-value="rnb">R&amp;B</button>
+                <button type="button" class="choice-btn" data-value="band">BAND</button>
+                <button type="button" class="choice-btn" data-value="edm">EDM</button>
+                <button type="button" class="choice-btn" data-value="indie">INDIE</button>
+                <button type="button" class="choice-btn" data-value="ballad">BALLAD</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">추천 범위</p>
+              <div class="option-group" data-type="single" data-name="origin" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">전체</button>
+                <button type="button" class="choice-btn" data-value="domestic">국내(대한민국)</button>
+                <button type="button" class="choice-btn" data-value="japan">일본</button>
+                <button type="button" class="choice-btn" data-value="global">해외</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">기분</p>
+              <div class="option-group" data-type="single" data-name="mood" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="happy">신남 😆</button>
+                <button type="button" class="choice-btn" data-value="calm">잔잔함 🌊</button>
+                <button type="button" class="choice-btn" data-value="focus">집중 📚</button>
+                <button type="button" class="choice-btn" data-value="sad">감성 🌙</button>
+                <button type="button" class="choice-btn" data-value="romantic">설렘 💫</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">상태/상황</p>
+              <div class="option-group" data-type="single" data-name="state" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="workout">운동</button>
+                <button type="button" class="choice-btn" data-value="study">공부</button>
+                <button type="button" class="choice-btn" data-value="drive">드라이브</button>
+                <button type="button" class="choice-btn" data-value="night">야간</button>
+                <button type="button" class="choice-btn" data-value="walk">산책</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">색감</p>
+              <div class="option-group" data-type="single" data-name="color" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="orange">오렌지</button>
+                <button type="button" class="choice-btn" data-value="blue">블루</button>
+                <button type="button" class="choice-btn" data-value="green">그린</button>
+                <button type="button" class="choice-btn" data-value="red">레드</button>
+                <button type="button" class="choice-btn" data-value="purple">퍼플</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">계절</p>
+              <div class="option-group" data-type="single" data-name="season" data-default="spring">
+                <button type="button" class="choice-btn" data-value="spring">봄 🌸</button>
+                <button type="button" class="choice-btn" data-value="summer">여름 ☀️</button>
+                <button type="button" class="choice-btn" data-value="autumn">가을 🍂</button>
+                <button type="button" class="choice-btn" data-value="winter">겨울 ❄️</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <p class="label-head">추천 곡 수</p>
+              <div class="range-wrap">
+                <div class="range-topline">
+                  <span class="helper">선택 곡 수</span>
+                  <span class="range-badge"><strong id="countValue">10</strong>곡</span>
+                </div>
+                <input id="countRange" type="range" min="0" max="20" step="1" value="10" />
+                <div class="range-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>20</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="likes">좋아하는 곡/가수 입력</label>
+            <textarea id="likes" rows="3" placeholder="예: NewJeans, 태연, 밤산책할 때 듣는 곡"></textarea>
+          </div>
+
+          <div class="field-group">
+            <label for="capture">플레이리스트 캡처 이미지 업로드</label>
+            <input id="capture" type="file" accept="image/*" />
+            <p id="captureHint" class="helper">이미지를 올리면 OCR로 곡/아티스트 텍스트를 분석합니다.</p>
+          </div>
+
+          <div class="field-group">
+            <label for="spotifyUrl">Spotify 플레이리스트 URL</label>
+            <div class="inline-row">
+              <input id="spotifyUrl" type="url" placeholder="https://open.spotify.com/playlist/..." />
+              <button id="spotifyAnalyzeBtn" type="button">URL 분석 🔗</button>
+            </div>
+            <p id="spotifyHint" class="helper">플레이리스트 URL을 넣고 분석하면 제목/작성자 정보를 추천에 반영합니다.</p>
+          </div>
+
+          <div class="action-row">
+            <button id="recommendBtn">추천 받기 🎧</button>
+            <button id="resetBtn" type="button" class="secondary-btn">초기화</button>
+          </div>
+        </section>
+
+        <section class="panel analysis-panel">
+          <div class="result-head">
+            <h2>추천 분석</h2>
+          </div>
+          <div id="insights" class="insights"></div>
+        </section>
+
+        <section class="panel share-panel">
+          <div class="result-head">
+            <h2>공유 플레이리스트</h2>
+          </div>
+          <div class="share-form">
+            <input id="shareName" type="text" placeholder="공유할 플레이리스트 이름 (예: 시험기간 집중곡)" />
+            <input id="shareOwner" type="text" placeholder="닉네임 (예: audiya_user)" />
+            <button id="shareBtn" type="button">현재 추천 공유하기 🤝</button>
+          </div>
+          <p id="shareHint" class="helper">서버 연결 시 공유 목록이 DB에 저장됩니다.</p>
+          <div id="sharedPlaylists" class="share-grid"></div>
+        </section>
+      </section>
+
+      <aside class="panel result-panel result-dock">
+        <div class="result-head">
+          <h2>추천 플레이리스트</h2>
+          <span id="resultCount">0곡</span>
+        </div>
+        <p id="qualityHint" class="quality-hint quality-normal">데이터 품질: 정상 모드</p>
+        <div id="cards" class="cards"></div>
+      </aside>
+    </main>
+
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
