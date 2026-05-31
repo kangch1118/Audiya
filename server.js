@@ -335,13 +335,12 @@ async function toggleLikePlaylist(token, playlistId, playlistName, playlistData)
         created_at: new Date().toISOString(),
       });
     }
-    // playlists.json likes 카운트 동기화
+    // community_playlists likes 카운트 동기화
     try {
-      const db = await readDb();
-      const communityItem = db.items.find((i) => i.id === playlistId);
-      if (communityItem) {
-        communityItem.likes = Math.max(0, (communityItem.likes || 0) + (liked ? 1 : -1));
-        await writeDb(db);
+      const { data: cp } = await supabase.from("community_playlists").select("likes").eq("id", playlistId).single();
+      if (cp) {
+        const newLikes = Math.max(0, (cp.likes || 0) + (liked ? 1 : -1));
+        await supabase.from("community_playlists").update({ likes: newLikes }).eq("id", playlistId);
       }
     } catch (_e) {}
     return { success: true, liked };
@@ -1136,6 +1135,20 @@ function toPublicItem(item) {
   };
 }
 
+function toCommunityItem(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    owner: item.owner,
+    ownerUsername: item.owner_username || "",
+    theme: item.theme || "",
+    genres: Array.isArray(item.genres) ? item.genres : [],
+    likes: item.likes || 0,
+    createdAt: item.created_at,
+    tracks: Array.isArray(item.tracks) ? item.tracks : [],
+  };
+}
+
 function extractGenres(tracks) {
   const counts = {};
   (tracks || []).forEach((t) => { if (t.genre) counts[t.genre] = (counts[t.genre] || 0) + 1; });
@@ -1765,12 +1778,10 @@ async function handleApi(req, res) {
     try {
       const { data: user } = await supabase.from("users").select("username").eq("auth_token", authToken).single();
       if (!user) { sendJson(res, 401, { message: "인증 실패" }); return true; }
-      const db = await readDb();
-      const idx = db.items.findIndex((i) => i.id === playlistId);
-      if (idx === -1) { sendJson(res, 404, { message: "플레이리스트를 찾을 수 없습니다" }); return true; }
-      if (db.items[idx].ownerUsername !== user.username) { sendJson(res, 403, { message: "삭제 권한이 없습니다" }); return true; }
-      db.items.splice(idx, 1);
-      await writeDb(db);
+      const { data: pl } = await supabase.from("community_playlists").select("owner_username").eq("id", playlistId).single();
+      if (!pl) { sendJson(res, 404, { message: "플레이리스트를 찾을 수 없습니다" }); return true; }
+      if (pl.owner_username !== user.username) { sendJson(res, 403, { message: "삭제 권한이 없습니다" }); return true; }
+      await supabase.from("community_playlists").delete().eq("id", playlistId);
       sendJson(res, 200, { success: true });
     } catch (err) {
       sendJson(res, 500, { message: "삭제 중 오류 발생" });
@@ -1785,63 +1796,57 @@ async function handleApi(req, res) {
         .from("playlist_likes").select("playlist_id").gte("created_at", oneWeekAgo);
       const countMap = {};
       (weeklyLikes || []).forEach((l) => { countMap[l.playlist_id] = (countMap[l.playlist_id] || 0) + 1; });
-      const db = await readDb();
-      let ranked = db.items
-        .filter((item) => countMap[item.id])
-        .map((item) => ({ ...toPublicItem(item), weeklyLikes: countMap[item.id] }))
-        .sort((a, b) => b.weeklyLikes - a.weeklyLikes)
-        .slice(0, 5);
+      let ranked = [];
+      if (Object.keys(countMap).length > 0) {
+        const { data: pls } = await supabase.from("community_playlists").select("*").in("id", Object.keys(countMap));
+        ranked = (pls || [])
+          .map((pl) => ({ ...toCommunityItem(pl), weeklyLikes: countMap[pl.id] || 0 }))
+          .sort((a, b) => b.weeklyLikes - a.weeklyLikes)
+          .slice(0, 5);
+      }
       if (ranked.length === 0) {
-        ranked = [...db.items]
-          .sort((a, b) => (b.likes || 0) - (a.likes || 0))
-          .slice(0, 5)
-          .map((item) => ({ ...toPublicItem(item), weeklyLikes: 0 }));
+        const { data: top } = await supabase.from("community_playlists").select("*").order("likes", { ascending: false }).limit(5);
+        ranked = (top || []).map((pl) => ({ ...toCommunityItem(pl), weeklyLikes: 0 }));
       }
       sendJson(res, 200, { items: ranked });
-    } catch (error) {
+    } catch (_error) {
       sendJson(res, 200, { items: [] });
     }
     return true;
   }
 
   if (pathname === "/api/playlists" && req.method === "GET") {
-    const genre = String(requestUrl.searchParams.get("genre") || "");
-    const sort = String(requestUrl.searchParams.get("sort") || "recent");
-    const db = await readDb();
-    let items = [...db.items];
-    if (genre && genre !== "all") {
-      items = items.filter((item) => Array.isArray(item.genres) && item.genres.includes(genre));
+    try {
+      const genre = String(requestUrl.searchParams.get("genre") || "");
+      const sort = String(requestUrl.searchParams.get("sort") || "recent");
+      let query = supabase.from("community_playlists").select("*");
+      if (genre && genre !== "all") query = query.contains("genres", [genre]);
+      query = sort === "likes"
+        ? query.order("likes", { ascending: false })
+        : query.order("created_at", { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      sendJson(res, 200, { items: (data || []).map(toCommunityItem) });
+    } catch (_error) {
+      sendJson(res, 200, { items: [] });
     }
-    items.sort(sort === "likes"
-      ? (a, b) => (b.likes || 0) - (a.likes || 0)
-      : (a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    sendJson(res, 200, { items: items.map(toPublicItem) });
     return true;
   }
 
   if (pathname === "/api/playlists" && req.method === "POST") {
     let payload;
-    try {
-      payload = await readJsonBody(req);
-    } catch (_error) {
-      sendJson(res, 400, { error: "잘못된 JSON 형식입니다." });
-      return true;
+    try { payload = await readJsonBody(req); } catch (_error) {
+      sendJson(res, 400, { error: "잘못된 JSON 형식입니다." }); return true;
     }
-
     if (!payload.name || !payload.owner) {
-      sendJson(res, 400, { error: "name, owner는 필수입니다." });
-      return true;
+      sendJson(res, 400, { error: "name, owner는 필수입니다." }); return true;
     }
-
-    const db = await readDb();
     const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 20) : [];
-    // 인증된 사용자면 소유자 기록
     let ownerUsername = "";
     const authHeader = req.headers.authorization;
     if (authHeader) {
-      const t = authHeader.replace("Bearer ", "");
       try {
-        const { data: u } = await supabase.from("users").select("username").eq("auth_token", t).single();
+        const { data: u } = await supabase.from("users").select("username").eq("auth_token", authHeader.replace("Bearer ", "")).single();
         if (u) ownerUsername = u.username;
       } catch (_e) {}
     }
@@ -1849,18 +1854,19 @@ async function handleApi(req, res) {
       id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
       name: String(payload.name).slice(0, 80),
       owner: String(payload.owner).slice(0, 40),
-      ownerUsername,
+      owner_username: ownerUsername,
       theme: String(payload.theme || "기본 테마").slice(0, 80),
       genres: Array.isArray(payload.genres) ? payload.genres : extractGenres(tracks),
       likes: 0,
-      createdAt: new Date().toISOString(),
       tracks,
     };
-
-    db.items.push(item);
-    await writeDb(db);
-
-    sendJson(res, 201, { item: toPublicItem(item) });
+    try {
+      const { data, error } = await supabase.from("community_playlists").insert(item).select().single();
+      if (error) throw error;
+      sendJson(res, 201, { item: toCommunityItem(data) });
+    } catch (_error) {
+      sendJson(res, 500, { error: "저장 실패" });
+    }
     return true;
   }
 
@@ -2238,7 +2244,7 @@ async function serveStatic(req, res) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+async function requestHandler(req, res) {
   try {
     const handled = await handleApi(req, res);
     if (handled) return;
@@ -2246,9 +2252,16 @@ const server = http.createServer(async (req, res) => {
   } catch (_error) {
     sendJson(res, 500, { error: "서버 내부 오류" });
   }
-});
+}
 
-server.listen(PORT, async () => {
-  await ensureDbFiles();
-  console.log(`Audiya server running at http://localhost:${PORT}`);
-});
+// 로컬 개발 환경에서만 서버 시작
+if (require.main === module) {
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, async () => {
+    await ensureDbFiles();
+    console.log(`Audiya server running at http://localhost:${PORT}`);
+  });
+}
+
+// Vercel 서버리스 함수 export
+module.exports = requestHandler;
