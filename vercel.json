@@ -17,8 +17,7 @@
           "auth-app.js",
           "profile.js",
           "share.js",
-          "theme.js",
-          "audiya-logo.png"
+          "theme.js"
         ]
       }
     }
