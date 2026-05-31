@@ -1518,20 +1518,25 @@ async function handleApi(req, res) {
       return true;
     }
 
+    // 아이디 중복 확인
     try {
-      const { data } = await supabase
-        .from("users")
-        .select("id")
-        .eq("username", username)
-        .single();
-
-      if (data) {
+      const { data: existUser } = await supabase
+        .from("users").select("id").eq("username", username).single();
+      if (existUser) {
         sendJson(res, 409, { message: "이미 사용 중인 아이디입니다." });
         return true;
       }
-    } catch (_error) {
-      // 사용자 없음 - 계속 진행
-    }
+    } catch (_error) {}
+
+    // 닉네임(이름) 중복 확인
+    try {
+      const { data: existName } = await supabase
+        .from("users").select("id").eq("name", name).single();
+      if (existName) {
+        sendJson(res, 409, { message: "이미 사용 중인 닉네임(이름)입니다." });
+        return true;
+      }
+    } catch (_error) {}
 
     const result = await createUser(username, password, name, phone);
     if (result.success) {
@@ -1654,6 +1659,16 @@ async function handleApi(req, res) {
     try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
     const name = String(payload.name || "").trim();
     if (!name) { sendJson(res, 400, { message: "이름을 입력해주세요." }); return true; }
+
+    // 닉네임 중복 확인 (본인 제외)
+    try {
+      const { data: cur } = await supabase.from("users").select("id, name").eq("auth_token", token).single();
+      if (cur && cur.name !== name) {
+        const { data: existName } = await supabase.from("users").select("id").eq("name", name).single();
+        if (existName) { sendJson(res, 409, { message: "이미 사용 중인 닉네임입니다." }); return true; }
+      }
+    } catch (_error) {}
+
     const result = await updateUserName(token, name);
     sendJson(res, result.success ? 200 : 400, result);
     return true;
