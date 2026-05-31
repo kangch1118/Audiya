@@ -1923,9 +1923,13 @@ async function recommend(options = {}) {
       return !playlistTrackKeys.has(key);
     });
 
-    // 1차 점수 기반 정렬 후 GPT 평가 풀 구성
-    const GPT_POOL_SIZE = Math.min(externalPoolRaw.length, Math.max(requestedCount * 4, 40));
-    const scoredForGpt = externalPoolRaw
+    // origin/genre 하드 필터 먼저 적용 후 GPT 평가 풀 구성
+    const hardFiltered = applyHardFilters(externalPoolRaw, context);
+    const gptSourcePool = hardFiltered.length >= requestedCount
+      ? hardFiltered
+      : externalPoolRaw; // 필터 결과 부족 시 전체 사용
+    const GPT_POOL_SIZE = Math.min(gptSourcePool.length, Math.max(requestedCount * 4, 40));
+    const scoredForGpt = gptSourcePool
       .map((track) => scoreTrack(track, context))
       .sort((a, b) => b.score - a.score)
       .slice(0, GPT_POOL_SIZE);

@@ -1411,6 +1411,14 @@ async function aiFilterTracks(context, tracks) {
 
   const systemPrompt = `You are a professional music curator. Evaluate songs based on user preferences. Return ONLY valid JSON, no extra text.`;
 
+  const originRule = context.origin === "domestic"
+    ? "⚠️ 반드시 한국 아티스트/한국 음악만 높은 점수를 줘. 해외/일본 곡은 무조건 3점 이하."
+    : context.origin === "japan"
+    ? "⚠️ 반드시 일본 아티스트/일본 음악만 높은 점수를 줘. 한국/해외 곡은 무조건 3점 이하."
+    : context.origin === "global"
+    ? "⚠️ 서양(미국/영국 등) 아티스트 곡만 높은 점수를 줘. 한국/일본 곡은 무조건 3점 이하."
+    : "";
+
   const userPrompt = `User wants music matching:
 - 장르: ${genres}
 - 기분: ${mood}
@@ -1420,7 +1428,9 @@ async function aiFilterTracks(context, tracks) {
 - 추천 범위: ${context.origin || "all"}
 - 좋아하는 아티스트/곡: ${context.likes || "없음"}
 
-아래 곡들이 위 조건에 얼마나 잘 맞는지 평가해줘. 곡 제목과 아티스트 이름으로 장르/분위기를 유추해서 판단해.
+${originRule}
+
+아래 곡들이 위 조건에 얼마나 잘 맞는지 평가해줘. 곡 제목과 아티스트 이름으로 장르/분위기/국적을 유추해서 판단해.
 점수 기준: 0=전혀 안 맞음, 5=보통, 8=잘 맞음, 10=완벽히 맞음
 
 ${trackList}
