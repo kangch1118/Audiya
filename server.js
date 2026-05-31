@@ -1341,25 +1341,34 @@ async function generateAiSearchTerms(context) {
   const originLabel = { domestic: "Korean", japan: "Japanese", global: "Western/Global", all: "any" };
   const origin = originLabel[context.origin] || "any";
 
-  const systemPrompt = `You are a music recommendation AI. Given user preferences, output ONLY valid JSON with search terms for Spotify/YouTube APIs and a Korean vibe description. No extra text.`;
+  const hasUserInputs = context.likes || context.ocrContent || context.spotifyTracks;
+  const systemPrompt = `You are a music recommendation AI. Output ONLY valid JSON. No extra text.`;
 
-  const userPrompt = `User preferences:
-- Genres: ${genres}
-- Mood: ${context.mood || "any"}
-- Situation: ${context.state || "any"}
-- Color vibe: ${context.color || "any"}
-- Season: ${context.season || "any"}
-- Origin: ${origin}
-- Liked artists/songs: ${context.likes || "none"}
+  const primaryBlock = hasUserInputs ? `⭐ PRIMARY SIGNALS (최우선 — 이와 유사한 음악을 찾아야 함):
+${context.likes ? `- 좋아하는 가수/곡: ${context.likes}` : ""}
+${context.spotifyTracks ? `- Spotify 플레이리스트: ${context.spotifyTracks}` : ""}
+${context.ocrContent ? `- 이미지에서 감지된 곡/가수: ${context.ocrContent}` : ""}
 
-Generate search terms that work well on Spotify and YouTube music search.
-Mix Korean and English terms. Be specific and creative.
+위 아티스트들과 음악적으로 유사한 아티스트/곡을 반드시 포함할 것.
+
+` : "";
+
+  const userPrompt = `${primaryBlock}보조 선호:
+- 장르: ${genres}
+- 기분: ${context.mood || "any"}
+- 상황: ${context.state || "any"}
+- 색감: ${context.color || "any"}
+- 계절: ${context.season || "any"}
+- 추천 범위: ${origin}
+
+Spotify/YouTube 검색에 최적화된 검색어를 생성해줘.
+${hasUserInputs ? "PRIMARY SIGNALS 아티스트와 스타일이 비슷한 아티스트를 searchTerms와 suggestedArtists에 우선 포함." : ""}
 
 Output JSON:
 {
-  "searchTerms": ["8 to 12 specific search query strings"],
-  "vibeDescription": "2~3 sentences in Korean describing the playlist vibe",
-  "suggestedArtists": ["3 to 5 specific artist names matching the vibe"]
+  "searchTerms": ["10 to 14 specific search query strings"],
+  "vibeDescription": "2~3문장 한국어로 플레이리스트 분위기 설명 (PRIMARY SIGNALS 반영)",
+  "suggestedArtists": ["6 to 8 specific artist names — similar to PRIMARY SIGNALS if provided"]
 }`;
 
   const response = await fetchWithTimeout(
@@ -1376,8 +1385,8 @@ Output JSON:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.8,
-        max_tokens: 600,
+        temperature: 0.7,
+        max_tokens: 800,
         response_format: { type: "json_object" },
       }),
     },
@@ -1419,19 +1428,27 @@ async function aiFilterTracks(context, tracks) {
     ? "⚠️ 서양(미국/영국 등) 아티스트 곡만 높은 점수를 줘. 한국/일본 곡은 무조건 3점 이하."
     : "";
 
-  const userPrompt = `User wants music matching:
+  const hasPrimary = context.likes || context.ocrContent || context.spotifyTracks;
+  const primarySection = hasPrimary ? `⭐ PRIMARY SIGNALS (가장 중요한 판단 기준):
+${context.likes ? `- 사용자가 좋아하는 가수/곡: ${context.likes}` : ""}
+${context.spotifyTracks ? `- Spotify 플레이리스트 곡들: ${context.spotifyTracks}` : ""}
+${context.ocrContent ? `- 이미지 캡처 곡/가수: ${context.ocrContent}` : ""}
+
+위 아티스트/곡과 음악적 스타일이 유사하면 높은 점수를 줘.
+
+` : "";
+
+  const userPrompt = `${primarySection}보조 선호:
 - 장르: ${genres}
 - 기분: ${mood}
 - 상황: ${state}
-- 색감: ${context.color || "무관"}
-- 계절: ${context.season || "무관"}
 - 추천 범위: ${context.origin || "all"}
-- 좋아하는 아티스트/곡: ${context.likes || "없음"}
 
 ${originRule}
 
-아래 곡들이 위 조건에 얼마나 잘 맞는지 평가해줘. 곡 제목과 아티스트 이름으로 장르/분위기/국적을 유추해서 판단해.
-점수 기준: 0=전혀 안 맞음, 5=보통, 8=잘 맞음, 10=완벽히 맞음
+아래 곡들을 평가해줘. 곡 제목/아티스트로 장르·분위기·국적·스타일을 유추해서 판단.
+${hasPrimary ? "PRIMARY SIGNALS 아티스트와 스타일이 유사할수록 높은 점수." : ""}
+점수 기준: 0=전혀 안 맞음, 5=보통, 7=잘 맞음, 10=완벽히 맞음
 
 ${trackList}
 

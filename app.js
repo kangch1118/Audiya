@@ -1036,7 +1036,9 @@ async function fetchAiFilterTracks(context, tracks) {
           color: context.color,
           season: context.season,
           origin: context.origin,
-          likes: context.likeTokens.slice(0, 10).join(", "),
+          likes: context.rawLikesText || context.likeTokens.join(", "),
+          ocrContent: context.ocrTokens.slice(0, 15).join(", "),
+          spotifyTracks: (context.spotifyTrackList || []).join("; "),
         },
         tracks,
       }),
@@ -1061,7 +1063,9 @@ async function fetchAiSearchTerms(context) {
         color: context.color,
         season: context.season,
         origin: context.origin,
-        likes: context.likeTokens.slice(0, 10).join(", "),
+        likes: context.rawLikesText || context.likeTokens.join(", "),
+        ocrContent: context.ocrTokens.slice(0, 15).join(", "),
+        spotifyTracks: (context.spotifyTrackList || []).join("; "),
       }),
     }, 16000);
 
@@ -1077,15 +1081,26 @@ async function fetchAiSearchTerms(context) {
 function buildSearchTerms(context) {
   const terms = [];
 
-  // AI 생성 검색어를 최우선으로 사용
+  // ── 1순위: 직접 입력한 좋아하는 가수/곡 ─────────────
+  context.likeTokens.slice(0, 10).forEach((token) => terms.unshift(token));
+
+  // ── 1순위: Spotify 플레이리스트 실제 아티스트 이름 ──
+  if (Array.isArray(context.spotifyTrackList) && context.spotifyTrackList.length > 0) {
+    const spotifyArtists = [...new Set(
+      spotifyTracks.slice(0, 10).map((t) => t.artist.toLowerCase())
+    )];
+    spotifyArtists.forEach((a) => terms.unshift(a));
+  }
+
+  // ── 1순위: OCR 감지 토큰 ──────────────────────────────
+  context.ocrTokens.slice(0, 6).forEach((token) => terms.unshift(token));
+
+  // ── 2순위: AI 생성 검색어 ─────────────────────────────
   if (Array.isArray(context.aiTerms) && context.aiTerms.length > 0) {
     context.aiTerms.forEach((term) => terms.push(term));
   }
 
-  // 좋아하는 가수/곡: 최우선 검색어
-  context.likeTokens.slice(0, 8).forEach((token) => terms.unshift(token));
-
-  // AI 추천 아티스트 추가
+  // AI 추천 아티스트
   if (Array.isArray(context.aiArtists) && context.aiArtists.length > 0) {
     context.aiArtists.forEach((artist) => terms.push(artist));
   }
@@ -1420,24 +1435,31 @@ function scoreTrack(track, context) {
   }
 
   const textBlob = `${track.title} ${track.artist}`.toLowerCase();
+
+  // ── 1순위: 좋아하는 가수/곡 입력 ─────────────────────
   const likeMatchCount = context.likeTokens.filter(
     (token) => token.length > 0 && textBlob.includes(token),
   ).length;
   if (likeMatchCount > 0) {
-    score += 4 + likeMatchCount;
+    score += 12 + likeMatchCount * 2; // 기존 4 → 12
     reasons.push("좋아하는 곡/아티스트 일치");
   }
 
-  if (context.ocrTokens.some((token) => textBlob.includes(token))) {
-    score += 3;
-    reasons.push("캡처 OCR 텍스트 유사");
+  // ── 1순위: 캡처 이미지 OCR ────────────────────────────
+  const ocrMatchCount = context.ocrTokens.filter(
+    (token) => token.length > 1 && textBlob.includes(token),
+  ).length;
+  if (ocrMatchCount > 0) {
+    score += 10 + ocrMatchCount; // 기존 3 → 10
+    reasons.push("캡처 이미지 일치");
   }
 
+  // ── 1순위: Spotify 플레이리스트 URL ──────────────────
   const spotifyMatchCount = context.spotifyTokens.filter(
     (token) => token.length > 0 && textBlob.includes(token),
   ).length;
   if (spotifyMatchCount > 0) {
-    score += 4 + spotifyMatchCount;
+    score += 10 + spotifyMatchCount; // 기존 4 → 10
     reasons.push("플레이리스트 곡/아티스트 일치");
   }
 
@@ -1890,6 +1912,9 @@ async function recommend(options = {}) {
     ocrTokens,
     spotifyTokens,
     playlistSimilarTokens: buildPlaylistSimilarTokens(spotifyTracks),
+    // GPT에 전달할 실제 Spotify 곡 목록과 OCR 원문
+    spotifyTrackList: spotifyTracks.slice(0, 15).map((t) => `${t.title} - ${t.artist}`),
+    rawLikesText: likesInput.value.trim(),
   };
 
   recommendBtn.disabled = true;
