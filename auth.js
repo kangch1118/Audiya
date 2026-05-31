@@ -192,9 +192,6 @@ async function signInWithProvider(provider) {
 
 document.getElementById("googleBtn")?.addEventListener("click", () => signInWithProvider("google"));
 document.getElementById("githubBtn")?.addEventListener("click", () => signInWithProvider("github"));
-document.getElementById("naverBtn")?.addEventListener("click", () => {
-  window.location.href = "/api/auth/naver";
-});
 
 // ── 이미 로그인 상태면 메인으로 ───────────────────────
 if (localStorage.getItem("authToken")) window.location.href = "/";
