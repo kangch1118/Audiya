@@ -1,3 +1,8 @@
+// ── Supabase 클라이언트 (소셜 로그인용) ──────────────
+const SUPABASE_URL = "https://aihosblngsyezeqcmspg.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Yygl54Kw3jLnReThtJdfCA_NZDmxSXD";
+const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ── 뷰 전환 ──────────────────────────────────────────
 const views = ["viewLogin", "viewSignup", "viewReset1", "viewReset2"];
 
@@ -174,6 +179,22 @@ document.getElementById("goSignupBtn")?.addEventListener("click", () => showView
 document.getElementById("goLoginBtn")?.addEventListener("click", () => showView("viewLogin"));
 document.getElementById("showResetBtn")?.addEventListener("click", () => showView("viewReset1"));
 document.getElementById("backToLoginBtn")?.addEventListener("click", () => showView("viewLogin"));
+
+// ── 소셜 로그인 ───────────────────────────────────────
+async function signInWithProvider(provider) {
+  if (!sb) { alert("Supabase 초기화 실패. 페이지를 새로고침해주세요."); return; }
+  const { error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: window.location.origin + "/callback.html" },
+  });
+  if (error) alert("소셜 로그인 실패: " + error.message);
+}
+
+document.getElementById("googleBtn")?.addEventListener("click", () => signInWithProvider("google"));
+document.getElementById("githubBtn")?.addEventListener("click", () => signInWithProvider("github"));
+document.getElementById("naverBtn")?.addEventListener("click", () => {
+  window.location.href = "/api/auth/naver";
+});
 
 // ── 이미 로그인 상태면 메인으로 ───────────────────────
 if (localStorage.getItem("authToken")) window.location.href = "/";

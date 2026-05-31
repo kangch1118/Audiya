@@ -357,6 +357,56 @@ async function getUserLikedIds(token) {
   }
 }
 
+async function syncOAuthUser(provider, providerId, email, name) {
+  try {
+    // 기존 OAuth 사용자 찾기
+    const { data: existing } = await supabase
+      .from("users").select("*")
+      .eq("oauth_provider", provider).eq("oauth_id", providerId).single();
+
+    if (existing) {
+      const token = generateToken();
+      await supabase.from("users")
+        .update({ auth_token: token, last_login: new Date().toISOString() })
+        .eq("id", existing.id);
+      return { success: true, token, username: existing.username, name: existing.name };
+    }
+
+    // 고유 username 생성
+    let base = (email || `${provider}user`).split("@")[0]
+      .replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 14) || "user";
+    if (base.length < 4) base = base.padEnd(4, "0");
+    let username = base;
+    for (let i = 1; ; i++) {
+      const { data: dup } = await supabase.from("users").select("id").eq("username", username).single();
+      if (!dup) break;
+      username = `${base}${i}`;
+    }
+
+    // 고유 name 생성
+    let displayName = (name || username).slice(0, 30);
+    let finalName = displayName;
+    for (let i = 1; ; i++) {
+      const { data: dup } = await supabase.from("users").select("id").eq("name", finalName).single();
+      if (!dup) break;
+      finalName = `${displayName}${i}`;
+    }
+
+    const token = generateToken();
+    const { data: newUser, error } = await supabase.from("users").insert({
+      username, name: finalName, password_hash: "", phone: "",
+      oauth_provider: provider, oauth_id: providerId,
+      auth_token: token, created_at: new Date().toISOString(),
+    }).select().single();
+
+    if (error) { console.error("OAuth user create error:", error); return { success: false, message: "계정 생성 실패" }; }
+    return { success: true, token, username: newUser.username, name: newUser.name, isNew: true };
+  } catch (err) {
+    console.error("syncOAuthUser error:", err);
+    return { success: false, message: "OAuth 처리 중 오류" };
+  }
+}
+
 async function verifyPhoneForReset(username, phone) {
   try {
     const { data, error } = await supabase
@@ -1655,6 +1705,74 @@ async function handleApi(req, res) {
       sendJson(res, 200, { message: "비밀번호가 재설정되었습니다." });
     } else {
       sendJson(res, 400, { message: result.message });
+    }
+    return true;
+  }
+
+  // OAuth 사용자 동기화 (Google/GitHub → 우리 DB)
+  if (pathname === "/api/auth/oauth/sync" && req.method === "POST") {
+    let payload;
+    try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
+    const { provider, providerId, email, name } = payload;
+    if (!provider || !providerId) { sendJson(res, 400, { message: "provider, providerId 필요" }); return true; }
+    const result = await syncOAuthUser(provider, providerId, email, name);
+    sendJson(res, result.success ? 200 : 400, result);
+    return true;
+  }
+
+  // 네이버 OAuth 시작
+  if (pathname === "/api/auth/naver" && req.method === "GET") {
+    const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID || "";
+    if (!NAVER_CLIENT_ID) { sendJson(res, 503, { message: "네이버 OAuth 미설정" }); return true; }
+    const baseUrl = req.headers.origin || `http://localhost:${PORT}`;
+    const redirectUri = encodeURIComponent(`${baseUrl}/api/auth/callback/naver`);
+    const state = crypto.randomBytes(16).toString("hex");
+    const naverUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${NAVER_CLIENT_ID}&redirect_uri=${redirectUri}&state=${state}`;
+    res.writeHead(302, { Location: naverUrl });
+    res.end();
+    return true;
+  }
+
+  // 네이버 OAuth 콜백
+  if (pathname === "/api/auth/callback/naver" && req.method === "GET") {
+    const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID || "";
+    const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || "";
+    const code = requestUrl.searchParams.get("code") || "";
+    const baseUrl = req.headers.origin || `http://localhost:${PORT}`;
+    const redirectUri = encodeURIComponent(`${baseUrl}/api/auth/callback/naver`);
+
+    if (!code) {
+      res.writeHead(302, { Location: "/login.html?error=naver_auth_failed" }); res.end(); return true;
+    }
+
+    try {
+      // 토큰 교환
+      const tokenRes = await fetchWithTimeout(
+        `https://nid.naver.com/oauth2.0/token?grant_type=authorization_code&client_id=${NAVER_CLIENT_ID}&client_secret=${NAVER_CLIENT_SECRET}&code=${code}&redirect_uri=${redirectUri}`,
+        { method: "GET" }
+      );
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) throw new Error("token_failed");
+
+      // 사용자 정보 조회
+      const profileRes = await fetchWithTimeout("https://openapi.naver.com/v1/nid/me", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const profileData = await profileRes.json();
+      const nv = profileData.response || {};
+
+      const result = await syncOAuthUser("naver", nv.id, nv.email, nv.name || nv.nickname);
+      if (!result.success) throw new Error(result.message);
+
+      // 메인으로 리다이렉트 (쿼리로 토큰 전달)
+      res.writeHead(302, {
+        Location: `/callback.html?token=${result.token}&username=${encodeURIComponent(result.username)}&name=${encodeURIComponent(result.name)}`,
+      });
+      res.end();
+    } catch (err) {
+      console.error("Naver OAuth error:", err.message);
+      res.writeHead(302, { Location: "/login.html?error=naver_failed" });
+      res.end();
     }
     return true;
   }

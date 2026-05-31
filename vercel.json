@@ -10,6 +10,7 @@
           "login.html",
           "profile.html",
           "share.html",
+          "callback.html",
           "styles.css",
           "app.js",
           "auth.js",
