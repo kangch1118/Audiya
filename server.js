@@ -94,55 +94,51 @@ const CONTENT_TYPES = {
 };
 
 async function ensureDbFiles() {
-  await fs.mkdir(DB_DIR, { recursive: true });
-
   try {
-    await fs.access(DB_FILE);
+    await fs.mkdir(DB_DIR, { recursive: true });
+    try { await fs.access(DB_FILE); } catch (_e) {
+      await fs.writeFile(DB_FILE, JSON.stringify({ items: [] }, null, 2), "utf-8");
+    }
+    try { await fs.access(FEEDBACK_DB_FILE); } catch (_e) {
+      await fs.writeFile(FEEDBACK_DB_FILE, JSON.stringify({ items: [] }, null, 2), "utf-8");
+    }
   } catch (_error) {
-    await fs.writeFile(
-      DB_FILE,
-      JSON.stringify({ items: [] }, null, 2),
-      "utf-8",
-    );
-  }
-
-  try {
-    await fs.access(FEEDBACK_DB_FILE);
-  } catch (_error) {
-    await fs.writeFile(
-      FEEDBACK_DB_FILE,
-      JSON.stringify({ items: [] }, null, 2),
-      "utf-8",
-    );
+    // 서버리스 환경에서 파일시스템 접근 불가 시 무시
   }
 }
 
 async function readDb() {
-  await ensureDbFiles();
-  const raw = await fs.readFile(DB_FILE, "utf-8");
-  const data = JSON.parse(raw);
-  if (!data || !Array.isArray(data.items)) {
+  try {
+    await ensureDbFiles();
+    const raw = await fs.readFile(DB_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    return (!data || !Array.isArray(data.items)) ? { items: [] } : data;
+  } catch (_error) {
     return { items: [] };
   }
-  return data;
 }
 
 async function writeDb(data) {
-  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  try {
+    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch (_error) {}
 }
 
 async function readFeedbackDb() {
-  await ensureDbFiles();
-  const raw = await fs.readFile(FEEDBACK_DB_FILE, "utf-8");
-  const data = JSON.parse(raw);
-  if (!data || !Array.isArray(data.items)) {
+  try {
+    await ensureDbFiles();
+    const raw = await fs.readFile(FEEDBACK_DB_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    return (!data || !Array.isArray(data.items)) ? { items: [] } : data;
+  } catch (_error) {
     return { items: [] };
   }
-  return data;
 }
 
 async function writeFeedbackDb(data) {
-  await fs.writeFile(FEEDBACK_DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  try {
+    await fs.writeFile(FEEDBACK_DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch (_error) {}
 }
 
 async function readJsonBody(req) {

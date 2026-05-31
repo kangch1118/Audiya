@@ -1,15 +1,27 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "index.html",
+          "login.html",
+          "profile.html",
+          "share.html",
+          "styles.css",
+          "app.js",
+          "auth.js",
+          "auth-app.js",
+          "profile.js",
+          "share.js",
+          "theme.js"
+        ]
+      }
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" },
-    { "src": "/login.html", "dest": "/login.html" },
-    { "src": "/profile.html", "dest": "/profile.html" },
-    { "src": "/share.html", "dest": "/share.html" },
-    { "src": "/(.*\\.(?:css|js|json|png|jpg|svg|ico|bat)$)", "dest": "/$1" },
-    { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/server.js" }
   ]
 }
