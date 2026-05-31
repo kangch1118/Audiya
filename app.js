@@ -638,6 +638,31 @@ const genreQueryMap = {
   ballad: "ballad",
 };
 
+// origin별 장르 특화 검색어
+const domesticGenreQueryMap = {
+  kpop: "kpop 한국",
+  jpop: "jpop",
+  pop: "한국 pop",
+  hiphop: "한국 힙합 korean hiphop",
+  rnb: "한국 알앤비 kr&b",
+  band: "한국 밴드 korean indie band",
+  edm: "한국 EDM",
+  indie: "한국 인디 korean indie",
+  ballad: "한국 발라드 korean ballad",
+};
+
+const japanGenreQueryMap = {
+  kpop: "kpop",
+  jpop: "jpop 일본",
+  pop: "일본 pop japanese pop",
+  hiphop: "일본 힙합 japanese hiphop",
+  rnb: "일본 알앤비 japanese rnb",
+  band: "일본 밴드 japanese band",
+  edm: "일본 EDM",
+  indie: "일본 인디 japanese indie",
+  ballad: "일본 발라드 japanese ballad",
+};
+
 const moodKeywordMap = {
   happy: "upbeat",
   calm: "chill",
@@ -653,6 +678,27 @@ const stateKeywordMap = {
   night: "night",
   walk: "walking",
 };
+
+// 아티스트/제목 텍스트에서 origin 감지
+function detectOriginFromArtist(artist, title) {
+  const text = `${artist} ${title}`;
+
+  // 한글 포함 → 국내
+  if (/[가-힣]/.test(text)) return "domestic";
+
+  // 일본어(히라가나/카타카나) 포함 → 일본
+  if (/[぀-ヿ]/.test(text)) return "japan";
+
+  // 영문명 한국 아티스트 목록
+  const koreanArtists = /\b(bts|blackpink|twice|aespa|newjeans|ive|nct|exo|stray kids|txt|itzy|red velvet|seventeen|bigbang|shinee|2ne1|wonder girls|g-dragon|iu|taeyeon|zico|dean|heize|crush|dynamic duo|epik high|hyukoh|bolbbalgan|akmu|day6|got7|monsta x|enhypen|le sserafim|fromis|kard|mamamoo|winner|ikon|infinite|apink|sistar|miss a|f\(x\)|super junior|beast|b2st|beast|btob|block b|vixx|highlight|wanna one|ioi|pristin|weki meki|loona|everglow|purple kiss|kep1er|nmixx|illit|tripleS|vcha|limelight|sole|jamie|ph-1|so!yoon|sokodomo|oven|colde|loco|nafla|chillin hobo|bloo|ignito|paloalto|swings|grey|owen ovadoz|okasian|woo|vinxen|mold|the quiett|dok2|rhymer|keith ape|sik-k|loopy|sogumm|sunwoo jung-a|hyolyn|solji|hyuna|gain|ailee|wheein|moonbyul|hwasa|solar|seulgi|wendy|joy|irene|yeri|suzy|boa|rain|se7en|lee hyori|park jiyoon|davichi|urban zakapa|10cm|roy kim|lim chang-jung|baek ji-young|kim bum-soo|gummy|byul|lyn|naul|kangta|fly to the sky|spica|stellar|t-ara|afterschool|secret|brown eyed girls|4minute|secret|mblaq|teentop|nuest|cnblue|ft island|shinhwa|sechskies|h\.o\.t|god|click b|sg wannabe|izi|han groo|huh gak|hong jin-young|lim youngwoong|trot)\b/i;
+  if (koreanArtists.test(text)) return "domestic";
+
+  // 영문명 일본 아티스트 목록
+  const japaneseArtists = /\b(yoasobi|kenshi yonezu|ado|official hige dandism|king gnu|yorushika|vaundy|fujii kaze|eve|zutomayo|lisa|aimer|radwimps|one ok rock|scandal|perfume|kyary pamyu pamyu|arashi|exile|morning musume|babymetal|band-maid|the gazette|buck-tick|malice mizer|gackt|hyde|l'arc|miyavi|x japan|dir en grey|acid black cherry|maximum the hormone|man with a mission|back number|sumika|creep hyp|kana-boon|ncis|taka|my first story|the oral cigarettes|unison square garden|macaroni enpitsu|04 limited sazabys|wanima|ellegarden|the blue hearts|dreams come true|mr children|spitz|bump of chicken|asian kung-fu generation|flow|girlfriend|do as infinity|globe|speed|amuro namie|koda kumi|hamasaki ayumi|utada hikaru|shibuya|yakushimaru|capsule|daft punk japan|cornelius|pizzicato five)\b/i;
+  if (japaneseArtists.test(text)) return "japan";
+
+  return null; // 감지 불가
+}
 
 function getSelectedGenres() {
   return Array.from(
@@ -1049,35 +1095,33 @@ function buildSearchTerms(context) {
 
   // AI 검색어가 없을 때만 룰 기반 폴백
   if (context.aiTerms.length === 0) {
+    // origin에 맞는 장르 검색어 맵 선택
+    const activeGenreMap =
+      context.origin === "domestic" ? domesticGenreQueryMap :
+      context.origin === "japan" ? japanGenreQueryMap :
+      genreQueryMap;
+
     context.genres.forEach((genre) => {
-      if (genreQueryMap[genre]) terms.push(genreQueryMap[genre]);
+      if (activeGenreMap[genre]) terms.push(activeGenreMap[genre]);
     });
 
-    if (context.mood !== "all" && moodKeywordMap[context.mood]) {
-      terms.push(moodKeywordMap[context.mood]);
-    }
-
-    if (context.state !== "all" && stateKeywordMap[context.state]) {
-      terms.push(stateKeywordMap[context.state]);
-    }
-
-    const moodToken =
-      context.mood !== "all" && moodKeywordMap[context.mood]
-        ? moodKeywordMap[context.mood]
-        : "";
-    const stateToken =
-      context.state !== "all" && stateKeywordMap[context.state]
-        ? stateKeywordMap[context.state]
-        : "";
-    const genreTokens =
-      context.genres.length > 0 ? context.genres : ["kpop", "indie"];
+    const moodToken = context.mood !== "all" && moodKeywordMap[context.mood]
+      ? moodKeywordMap[context.mood] : "";
+    const stateToken = context.state !== "all" && stateKeywordMap[context.state]
+      ? stateKeywordMap[context.state] : "";
+    const genreTokens = context.genres.length > 0 ? context.genres : ["kpop", "indie"];
 
     genreTokens.slice(0, 3).forEach((genre) => {
-      const base = genreQueryMap[genre] || genre;
+      const base = activeGenreMap[genre] || genreQueryMap[genre] || genre;
       terms.push(base);
       if (moodToken) terms.push(`${base} ${moodToken}`);
       if (stateToken) terms.push(`${base} ${stateToken}`);
     });
+
+    // origin 고정 추가 검색어
+    if (context.origin === "domestic") terms.push("한국 노래", "kpop new");
+    if (context.origin === "japan") terms.push("일본 노래", "jpop new");
+    if (context.origin === "global") terms.push("western pop", "us music");
   }
 
   if (terms.length === 0) {
@@ -1165,21 +1209,23 @@ async function fetchSpotifyCandidates(context, requestedCount) {
     return { tracks: [], degraded: true };
   }
 
-  const tracks = payload.tracks.map((track) => ({
-    title: track.title || "Unknown",
-    artist: track.artist || "Unknown Artist",
-    mood: context.mood === "all" ? "calm" : context.mood,
-    state: context.state === "all" ? "study" : context.state,
-    genre: track.genre || context.genres[0] || "indie",
-    color: context.color === "all" ? "green" : context.color,
-    season: context.season === "all" ? "spring" : context.season,
-    origin:
-      track.origin || (context.origin === "all" ? "global" : context.origin),
-    source: "spotify",
-    coverUrl: track.coverUrl || "",
-    previewUrl: track.previewUrl || "",
-    spotifyUrl: track.spotifyUrl || "",
-  }));
+  const tracks = payload.tracks.map((track) => {
+    const detected = detectOriginFromArtist(track.artist || "", track.title || "");
+    return {
+      title: track.title || "Unknown",
+      artist: track.artist || "Unknown Artist",
+      mood: context.mood === "all" ? "calm" : context.mood,
+      state: context.state === "all" ? "study" : context.state,
+      genre: track.genre || context.genres[0] || "indie",
+      color: context.color === "all" ? "green" : context.color,
+      season: context.season === "all" ? "spring" : context.season,
+      origin: detected || (context.origin === "all" ? "global" : context.origin),
+      source: "spotify",
+      coverUrl: track.coverUrl || "",
+      previewUrl: track.previewUrl || "",
+      spotifyUrl: track.spotifyUrl || "",
+    };
+  });
 
   return {
     tracks,
@@ -1207,21 +1253,23 @@ async function fetchYouTubeCandidates(context, requestedCount) {
     return { tracks: [], degraded: true };
   }
 
-  const tracks = payload.tracks.map((track) => ({
-    title: track.title || "Unknown",
-    artist: track.artist || "Unknown Artist",
-    mood: context.mood === "all" ? "calm" : context.mood,
-    state: context.state === "all" ? "study" : context.state,
-    genre: track.genre || context.genres[0] || "indie",
-    color: context.color === "all" ? "green" : context.color,
-    season: context.season === "all" ? "spring" : context.season,
-    origin:
-      track.origin || (context.origin === "all" ? "global" : context.origin),
-    source: "youtube",
-    coverUrl: track.coverUrl || "",
-    previewUrl: "",
-    youtubeUrl: track.youtubeUrl || "",
-  }));
+  const tracks = payload.tracks.map((track) => {
+    const detected = detectOriginFromArtist(track.artist || "", track.title || "");
+    return {
+      title: track.title || "Unknown",
+      artist: track.artist || "Unknown Artist",
+      mood: context.mood === "all" ? "calm" : context.mood,
+      state: context.state === "all" ? "study" : context.state,
+      genre: track.genre || context.genres[0] || "indie",
+      color: context.color === "all" ? "green" : context.color,
+      season: context.season === "all" ? "spring" : context.season,
+      origin: detected || (context.origin === "all" ? "global" : context.origin),
+      source: "youtube",
+      coverUrl: track.coverUrl || "",
+      previewUrl: "",
+      youtubeUrl: track.youtubeUrl || "",
+    };
+  });
 
   return {
     tracks,
@@ -1352,9 +1400,13 @@ function scoreTrack(track, context) {
     reasons.push("상황 일치");
   }
 
-  if (context.origin !== "all" && context.origin === track.origin) {
-    score += 2;
-    reasons.push("지역 조건 일치");
+  if (context.origin !== "all") {
+    if (context.origin === track.origin) {
+      score += 4;
+      reasons.push("지역 조건 일치");
+    } else {
+      score -= 5; // 지역 불일치 강력 패널티
+    }
   }
 
   if (context.color !== "all" && context.color === track.color) {
@@ -1923,11 +1975,20 @@ async function recommend(options = {}) {
       return !playlistTrackKeys.has(key);
     });
 
-    // origin/genre 하드 필터 먼저 적용 후 GPT 평가 풀 구성
+    // origin/genre 하드 필터 적용
     const hardFiltered = applyHardFilters(externalPoolRaw, context);
-    const gptSourcePool = hardFiltered.length >= requestedCount
-      ? hardFiltered
-      : externalPoolRaw; // 필터 결과 부족 시 전체 사용
+
+    // origin만 유지하고 genre 완화한 풀 (보충용)
+    const originOnlyFiltered = context.origin === "all"
+      ? externalPoolRaw
+      : externalPoolRaw.filter((t) => t.origin === context.origin);
+
+    // 우선순위: 하드필터 → origin만 필터 → 전체 (origin 미지정 시만)
+    const gptSourcePool =
+      hardFiltered.length >= Math.ceil(requestedCount / 2) ? hardFiltered :
+      originOnlyFiltered.length > 0 ? originOnlyFiltered :
+      externalPoolRaw;
+
     const GPT_POOL_SIZE = Math.min(gptSourcePool.length, Math.max(requestedCount * 4, 40));
     const scoredForGpt = gptSourcePool
       .map((track) => scoreTrack(track, context))
@@ -1946,10 +2007,13 @@ async function recommend(options = {}) {
         if (s && s.index >= 1) scoreMap[s.index - 1] = s;
       });
 
+      // origin 지정 시 기준 점수 상향
+      const minGptScore = context.origin !== "all" ? 6 : 5;
+
       recommended = scoredForGpt
         .map((track, i) => {
           const gs = scoreMap[i];
-          if (!gs || gs.score < 5) return null;
+          if (!gs || gs.score < minGptScore) return null;
           return {
             ...track,
             score: track.score + gs.score * 1.5,
