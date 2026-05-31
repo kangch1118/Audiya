@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audiya | 플레이리스트 공유</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+    <script src="theme.js"></script>
+    <style>
+      :root {
+        --bg: #f4f2ff;
+        --surface: rgba(255,255,255,0.88);
+        --border: rgba(139,92,246,0.16);
+        --text: #1e1b3a; --muted: #6b7280; --sub: #9ca3af;
+        --primary: #6366f1; --secondary: #8b5cf6;
+        --input-bg: rgba(255,255,255,0.7); --input-border: rgba(99,102,241,0.22);
+        --divider: rgba(139,92,246,0.1);
+        --tab-inactive: rgba(255,255,255,0.5); --tab-active: #6366f1;
+        --genre-bg: rgba(255,255,255,0.7); --genre-border: rgba(99,102,241,0.2);
+        --err-bg: rgba(220,38,38,0.07); --err-text: #dc2626;
+        --ok-bg: rgba(22,163,74,0.07); --ok-text: #16a34a;
+        --card-shadow: 0 2px 16px rgba(99,102,241,0.07);
+        --hero1: #6366f1; --hero2: #8b5cf6;
+      }
+      [data-theme="dark"] {
+        --bg: #08070f;
+        --surface: rgba(18,15,38,0.9);
+        --border: rgba(167,139,250,0.2);
+        --text: #e2e0f0; --muted: #9ca3af; --sub: #6b7280;
+        --primary: #818cf8; --secondary: #a78bfa;
+        --input-bg: rgba(14,11,28,0.8); --input-border: rgba(129,140,248,0.28);
+        --divider: rgba(167,139,250,0.12);
+        --tab-inactive: rgba(18,15,38,0.5); --tab-active: #818cf8;
+        --genre-bg: rgba(14,11,28,0.7); --genre-border: rgba(129,140,248,0.25);
+        --err-bg: rgba(220,38,38,0.12); --err-text: #f87171;
+        --ok-bg: rgba(22,163,74,0.12); --ok-text: #4ade80;
+        --card-shadow: 0 2px 16px rgba(0,0,0,0.4);
+        --hero1: #4f46e5; --hero2: #7c3aed;
+      }
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Noto Sans KR", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+      .top-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); }
+      .top-bar a { display:flex; align-items:center; gap:5px; text-decoration:none; color:var(--muted); font-size:13px; transition:color 0.2s; }
+      .top-bar a:hover { color:var(--primary); }
+      .top-brand { font-family:"Space Grotesk",sans-serif; font-size:18px; font-weight:800; letter-spacing:2px; background:linear-gradient(135deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+      .hero { background:linear-gradient(135deg,var(--hero1),var(--hero2)); padding:32px 24px; text-align:center; color:#fff; }
+      .hero h1 { font-size:20px; font-weight:700; margin-bottom:5px; }
+      .hero p { font-size:13px; opacity:0.8; }
+
+      .layout { display:grid; grid-template-columns:340px 1fr; gap:20px; max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
+      @media(max-width:800px) { .layout { grid-template-columns:1fr; } }
+
+      /* 공유 사이드 */
+      .share-side {}
+
+      .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:var(--card-shadow); backdrop-filter:blur(12px); }
+      .card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--divider); }
+
+      .tab-row { display:flex; margin-bottom:16px; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+      .tab-btn { flex:1; padding:9px 0; background:var(--tab-inactive); border:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all 0.2s; box-shadow:none; margin:0; }
+      .tab-btn.active { background:var(--primary); color:#fff; font-weight:700; }
+
+      .field { margin-bottom:12px; }
+      .field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
+      .field input { width:100%; padding:9px 12px; border:1.5px solid var(--input-border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--input-bg); color:var(--text); transition:border-color 0.2s; }
+      .field input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+      .field input::placeholder { color:var(--sub); }
+
+      .btn-primary { width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:4px; box-shadow:0 4px 14px rgba(99,102,241,0.3); transition:opacity 0.2s,transform 0.15s; }
+      .btn-primary:hover:not(:disabled) { opacity:0.9; transform:translateY(-1px); }
+      .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+      .track-preview { background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px; max-height:160px; overflow-y:auto; }
+      .track-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--divider); font-size:12px; }
+      .track-row:last-child { border-bottom:none; }
+      .t-num { color:var(--sub); width:18px; flex-shrink:0; text-align:right; }
+      .t-cover { width:28px; height:28px; border-radius:4px; object-fit:cover; background:var(--border); flex-shrink:0; }
+      .t-title { font-weight:600; color:var(--text); }
+      .t-artist { color:var(--sub); font-size:11px; }
+
+      .alert { padding:8px 12px; border-radius:7px; font-size:12px; margin-top:10px; display:none; }
+      .alert.show { display:block; }
+      .alert-error { background:var(--err-bg); color:var(--err-text); }
+      .alert-success { background:var(--ok-bg); color:var(--ok-text); }
+
+      .saved-pl-list { max-height:280px; overflow-y:auto; }
+      .saved-pl-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--divider); }
+      .saved-pl-item:last-child { border-bottom:none; }
+      .saved-thumb { width:36px; height:36px; border-radius:6px; background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15)); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; overflow:hidden; }
+      .saved-thumb img { width:100%; height:100%; object-fit:cover; }
+      .saved-info { flex:1; min-width:0; }
+      .saved-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .saved-meta { font-size:11px; color:var(--sub); }
+      .btn-share-small { padding:5px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; box-shadow:none; margin:0; }
+      .btn-share-small:hover { opacity:0.85; transform:none; }
+
+      .filter-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+      .genre-btn { padding:6px 14px; border-radius:20px; border:1.5px solid var(--genre-border); background:var(--genre-bg); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; font-family:inherit; white-space:nowrap; box-shadow:none; margin:0; }
+      .genre-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+      .genre-btn:hover:not(.active) { border-color:var(--primary); color:var(--primary); transform:none; box-shadow:none; }
+
+      .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+      .section-title { font-size:15px; font-weight:700; color:var(--text); }
+      .sort-label { font-size:12px; color:var(--sub); }
+
+      .pl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
+      .pl-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--card-shadow); cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; backdrop-filter:blur(8px); }
+      .pl-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(99,102,241,0.14); }
+      .pl-thumb { width:100%; aspect-ratio:1; background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.1)); display:flex; align-items:center; justify-content:center; font-size:32px; overflow:hidden; }
+      .pl-thumb img { width:100%; height:100%; object-fit:cover; }
+      .pl-body { padding:10px 12px; }
+      .pl-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .pl-owner { font-size:11px; color:var(--muted); margin-bottom:5px; }
+      .pl-foot { display:flex; align-items:center; justify-content:space-between; }
+      .pl-meta { font-size:11px; color:var(--sub); }
+      .like-btn { background:none; border:none; box-shadow:none; margin:0; font-size:16px; cursor:pointer; padding:2px; line-height:1; transition:transform 0.15s; color:var(--text); }
+      .like-btn:hover { transform:scale(1.25); }
+      .del-btn { background:none; border:none; box-shadow:none; margin:0; font-size:13px; cursor:pointer; padding:2px 6px; color:var(--sub); transition:color 0.2s; border-radius:4px; }
+      .del-btn:hover { color:#f87171; background:rgba(220,38,38,0.08); transform:none; }
+
+      .empty { text-align:center; padding:50px 20px; color:var(--sub); font-size:14px; }
+      .loading { text-align:center; padding:30px; color:var(--sub); font-size:13px; }
+
+      .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+      .modal-overlay.open { display:flex; }
+      .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:460px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); backdrop-filter:blur(20px); }
+      .modal-head { padding:16px 20px; border-bottom:1px solid var(--divider); display:flex; align-items:center; justify-content:space-between; }
+      .modal-head h3 { font-size:15px; font-weight:700; color:var(--text); }
+      .modal-close { background:none; border:none; box-shadow:none; margin:0; font-size:20px; color:var(--sub); cursor:pointer; line-height:1; padding:0; }
+      .modal-close:hover { color:var(--text); transform:none; }
+      .modal-tracks { overflow-y:auto; padding:12px 20px; flex:1; }
+      .modal-track { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider); }
+      .modal-track:last-child { border-bottom:none; }
+      .modal-num { color:var(--sub); font-size:11px; width:20px; text-align:right; flex-shrink:0; }
+      .modal-cover { width:36px; height:36px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
+      .modal-info .mt { font-size:13px; font-weight:600; color:var(--text); }
+      .modal-info .ma { font-size:11px; color:var(--sub); }
+      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); display:flex; gap:8px; }
+      .btn-like-modal { flex:1; padding:10px; background:rgba(139,92,246,0.1); color:var(--secondary); border:1px solid rgba(139,92,246,0.3); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; }
+      .btn-like-modal:hover { background:var(--secondary); color:#fff; transform:none; }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <a href="/">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        메인으로
+      </a>
+      <span class="top-brand">AUDIYA</span>
+      <a href="/profile.html" id="profileLink" style="color:var(--primary); font-size:13px; font-weight:600; display:none;">내 프로필</a>
+    </div>
+
+    <div class="hero">
+      <h1>플레이리스트 공유 🤝</h1>
+      <p>나의 플레이리스트를 커뮤니티와 공유하고 다른 사람의 취향을 발견하세요</p>
+    </div>
+
+    <div class="layout">
+
+      <!-- 공유 사이드바 -->
+      <div class="share-side">
+        <div class="card" id="shareCard">
+          <div class="card-title">공유하기</div>
+
+          <div class="tab-row">
+            <button class="tab-btn active" id="tabPending">지금 만든 추천</button>
+            <button class="tab-btn" id="tabSaved">내 저장 플레이리스트</button>
+          </div>
+
+          <!-- 현재 추천 공유 -->
+          <div id="panelPending">
+            <div id="pendingContent"></div>
+            <div class="alert alert-error" id="shareError"></div>
+            <div class="alert alert-success" id="shareSuccess"></div>
+          </div>
+
+          <!-- 저장된 플레이리스트 공유 -->
+          <div id="panelSaved" style="display:none;">
+            <div class="saved-pl-list" id="savedPlList">
+              <p style="color:#bbb; font-size:13px; text-align:center; padding:20px;">불러오는 중...</p>
+            </div>
+            <div class="alert alert-error" id="savedShareError"></div>
+            <div class="alert alert-success" id="savedShareSuccess"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 커뮤니티 메인 -->
+      <div class="community-side">
+        <div class="section-head">
+          <span class="section-title">🎵 커뮤니티 플레이리스트</span>
+          <span class="sort-label">인기순 정렬</span>
+        </div>
+
+        <div class="filter-bar">
+          <button class="genre-btn active" data-genre="all">전체</button>
+          <button class="genre-btn" data-genre="kpop">K-POP</button>
+          <button class="genre-btn" data-genre="jpop">J-POP</button>
+          <button class="genre-btn" data-genre="pop">POP</button>
+          <button class="genre-btn" data-genre="hiphop">힙합</button>
+          <button class="genre-btn" data-genre="rnb">R&amp;B</button>
+          <button class="genre-btn" data-genre="band">밴드</button>
+          <button class="genre-btn" data-genre="edm">EDM</button>
+          <button class="genre-btn" data-genre="indie">인디</button>
+          <button class="genre-btn" data-genre="ballad">발라드</button>
+        </div>
+
+        <div class="loading" id="communityLoading">불러오는 중...</div>
+        <div class="pl-grid" id="communityGrid" style="display:none;"></div>
+        <div class="empty" id="communityEmpty" style="display:none;">해당 장르의 플레이리스트가 없습니다</div>
+      </div>
+
+    </div>
+
+    <!-- 트랙 모달 -->
+    <div class="modal-overlay" id="trackModal">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3 id="modalTitle"></h3>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-tracks" id="modalTracks"></div>
+        <div class="modal-foot">
+          <button class="btn-like-modal" id="modalLikeBtn">💜 좋아요</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="share.js"></script>
+  </body>
+</html>

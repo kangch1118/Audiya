@@ -1,0 +1,16 @@
+{
+  "name": "audiya",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Audiya MVP with recommendation, OCR, and shared playlist DB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2"
+  }
+}

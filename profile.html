@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audiya | 프로필</title>
+    <script src="theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f4f2ff;
+        --surface: rgba(255,255,255,0.9);
+        --border: rgba(139,92,246,0.15);
+        --text: #1e1b3a; --muted: #6b7280; --sub: #9ca3af;
+        --primary: #6366f1; --secondary: #8b5cf6;
+        --input-bg: #fafafe; --input-border: rgba(99,102,241,0.22);
+        --divider: rgba(139,92,246,0.1);
+        --err-bg: rgba(220,38,38,0.07); --err-text: #dc2626;
+        --ok-bg: rgba(22,163,74,0.07); --ok-text: #16a34a;
+        --del-bg: rgba(220,38,38,0.07); --del-text: #dc2626; --del-border: rgba(220,38,38,0.2);
+        --card-shadow: 0 2px 16px rgba(99,102,241,0.07);
+        --hero1: #6366f1; --hero2: #8b5cf6;
+      }
+      [data-theme="dark"] {
+        --bg: #08070f;
+        --surface: rgba(18,15,38,0.9);
+        --border: rgba(167,139,250,0.2);
+        --text: #e2e0f0; --muted: #9ca3af; --sub: #6b7280;
+        --primary: #818cf8; --secondary: #a78bfa;
+        --input-bg: rgba(14,11,28,0.8); --input-border: rgba(129,140,248,0.28);
+        --divider: rgba(167,139,250,0.12);
+        --err-bg: rgba(220,38,38,0.12); --err-text: #f87171;
+        --ok-bg: rgba(22,163,74,0.12); --ok-text: #4ade80;
+        --del-bg: rgba(220,38,38,0.12); --del-text: #f87171; --del-border: rgba(248,113,113,0.3);
+        --card-shadow: 0 2px 16px rgba(0,0,0,0.4);
+        --hero1: #4f46e5; --hero2: #7c3aed;
+      }
+      *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+      body { font-family:"Noto Sans KR",system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+      .top-bar {
+        background:var(--surface); border-bottom:1px solid var(--border);
+        padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between;
+        position:sticky; top:0; z-index:10; backdrop-filter:blur(12px);
+      }
+      .top-bar a { display:flex; align-items:center; gap:6px; text-decoration:none; color:var(--muted); font-size:13px; transition:color 0.2s; }
+      .top-bar a:hover { color:var(--primary); }
+      .top-brand { font-family:"Space Grotesk",sans-serif; font-size:18px; font-weight:800; letter-spacing:2px; background:linear-gradient(135deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+      .logout-btn { background:none; border:1.5px solid var(--border); border-radius:8px; padding:6px 14px; font-size:12px; font-family:inherit; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+      .logout-btn:hover { border-color:var(--err-text); color:var(--err-text); }
+
+      .hero { background:linear-gradient(135deg,var(--hero1),var(--hero2)); padding:40px 24px 32px; text-align:center; color:#fff; }
+      .avatar { width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.45); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; margin:0 auto 14px; }
+      .hero-name { font-size:20px; font-weight:700; margin-bottom:4px; }
+      .hero-id { font-size:13px; opacity:0.75; }
+
+      .tab-wrap { background:var(--surface); border-bottom:1px solid var(--border); display:flex; max-width:720px; margin:0 auto; backdrop-filter:blur(12px); }
+      .tab-btn { flex:1; padding:14px 0; background:none; border:none; font-family:inherit; font-size:14px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+      .tab-btn.active { color:var(--primary); border-color:var(--primary); font-weight:700; }
+      .tab-btn:hover:not(.active) { color:var(--primary); }
+
+      .content { max-width:720px; margin:0 auto; padding:24px 16px 60px; }
+      .panel { display:none; }
+      .panel.active { display:block; }
+
+      .section-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; margin-bottom:14px; box-shadow:var(--card-shadow); backdrop-filter:blur(12px); }
+      .section-title { font-size:13px; font-weight:700; color:var(--muted); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--divider); text-transform:uppercase; letter-spacing:0.5px; }
+      .info-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--divider); gap:12px; }
+      .info-row:last-child { border-bottom:none; }
+      .info-label { font-size:12px; color:var(--sub); width:80px; flex-shrink:0; }
+      .info-value { font-size:14px; color:var(--text); flex:1; font-weight:500; }
+
+      .field { margin-bottom:13px; }
+      .field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px; }
+      .field input { width:100%; padding:10px 13px; border:1.5px solid var(--input-border); border-radius:10px; font-size:14px; font-family:inherit; background:var(--input-bg); color:var(--text); transition:border-color 0.2s,box-shadow 0.2s; }
+      .field input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+
+      .btn-save { padding:10px 22px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; box-shadow:0 4px 14px rgba(99,102,241,0.3); transition:opacity 0.2s,transform 0.15s; }
+      .btn-save:hover:not(:disabled) { opacity:0.9; transform:translateY(-1px); }
+      .btn-save:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+      .alert { padding:10px 13px; border-radius:9px; font-size:13px; margin-top:12px; display:none; }
+      .alert.show { display:block; }
+      .alert-error { background:var(--err-bg); color:var(--err-text); }
+      .alert-success { background:var(--ok-bg); color:var(--ok-text); }
+
+      .pl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px; }
+      .pl-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--card-shadow); transition:transform 0.2s,box-shadow 0.2s; cursor:pointer; backdrop-filter:blur(8px); }
+      .pl-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(99,102,241,0.12); }
+      .pl-thumb { width:100%; aspect-ratio:1; background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12)); display:flex; align-items:center; justify-content:center; font-size:36px; overflow:hidden; }
+      .pl-thumb img { width:100%; height:100%; object-fit:cover; }
+      .pl-info { padding:12px; }
+      .pl-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .pl-meta { font-size:11px; color:var(--sub); }
+
+      .empty-state { text-align:center; padding:60px 20px; color:var(--sub); font-size:14px; }
+      .empty-state .icon { font-size:40px; margin-bottom:12px; }
+      .loading { text-align:center; padding:40px; color:var(--sub); font-size:14px; }
+
+      /* 모달 */
+      .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+      .modal-overlay.open { display:flex; }
+      .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:480px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); backdrop-filter:blur(20px); }
+      .modal-head { padding:18px 20px; border-bottom:1px solid var(--divider); display:flex; align-items:center; justify-content:space-between; }
+      .modal-head h3 { font-size:15px; font-weight:700; color:var(--text); }
+      .modal-close { background:none; border:none; box-shadow:none; font-size:20px; color:var(--sub); cursor:pointer; line-height:1; padding:0; margin:0; }
+      .modal-close:hover { color:var(--text); transform:none; }
+      .modal-body { overflow-y:auto; padding:14px 20px; flex:1; }
+      .modal-track { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--divider); }
+      .modal-track:last-child { border-bottom:none; }
+      .m-num { color:var(--sub); font-size:11px; width:20px; text-align:right; flex-shrink:0; }
+      .m-cover { width:36px; height:36px; border-radius:6px; object-fit:cover; background:var(--input-border); flex-shrink:0; }
+      .m-title { font-size:13px; font-weight:600; color:var(--text); }
+      .m-artist { font-size:11px; color:var(--sub); }
+      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); }
+      .btn-delete { width:100%; padding:10px; background:var(--del-bg); color:var(--del-text); border:1.5px solid var(--del-border); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; }
+      .btn-delete:hover { background:var(--del-text); color:#fff; transform:none; }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <a href="/"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>메인으로</a>
+      <span class="top-brand">AUDIYA</span>
+      <button class="logout-btn" id="logoutBtn">로그아웃</button>
+    </div>
+
+    <div class="hero">
+      <div class="avatar" id="heroAvatar">?</div>
+      <div class="hero-name" id="heroName">로딩 중...</div>
+      <div class="hero-id" id="heroId">@—</div>
+    </div>
+
+    <div class="tab-wrap">
+      <button class="tab-btn active" data-panel="panelInfo">회원정보</button>
+      <button class="tab-btn" data-panel="panelPlaylists">내 플레이리스트</button>
+      <button class="tab-btn" data-panel="panelLikes">좋아요</button>
+    </div>
+
+    <div class="content">
+
+      <div class="panel active" id="panelInfo">
+        <div class="section-card">
+          <div class="section-title">기본 정보</div>
+          <div class="info-row"><span class="info-label">아이디</span><span class="info-value" id="infoUsername">—</span></div>
+          <div class="info-row"><span class="info-label">전화번호</span><span class="info-value" id="infoPhone">—</span></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">이름 변경</div>
+          <form id="nameForm">
+            <div class="field"><label>새 이름 (닉네임)</label><input id="editName" type="text" placeholder="변경할 이름 입력" /></div>
+            <button type="submit" class="btn-save" id="nameSaveBtn">저장</button>
+          </form>
+          <div class="alert alert-error" id="nameError"></div>
+          <div class="alert alert-success" id="nameSuccess"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">비밀번호 변경</div>
+          <form id="pwForm">
+            <div class="field"><label>현재 비밀번호</label><input id="currentPw" type="password" placeholder="현재 비밀번호" autocomplete="current-password" /></div>
+            <div class="field"><label>새 비밀번호</label><input id="newPw" type="password" placeholder="영문+숫자+특수문자 8자 이상" autocomplete="new-password" /></div>
+            <div class="field"><label>새 비밀번호 확인</label><input id="newPwConfirm" type="password" placeholder="새 비밀번호 재입력" autocomplete="new-password" /></div>
+            <button type="submit" class="btn-save" id="pwSaveBtn">비밀번호 변경</button>
+          </form>
+          <div class="alert alert-error" id="pwError"></div>
+          <div class="alert alert-success" id="pwSuccess"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelPlaylists">
+        <div class="loading" id="plLoading">불러오는 중...</div>
+        <div class="pl-grid" id="plGrid" style="display:none;"></div>
+        <div class="empty-state" id="plEmpty" style="display:none;"><div class="icon">🎵</div>저장된 플레이리스트가 없습니다.<br>메인에서 추천을 받고 저장해보세요!</div>
+      </div>
+
+      <div class="panel" id="panelLikes">
+        <div class="loading" id="likeLoading">불러오는 중...</div>
+        <div class="pl-grid" id="likeGrid" style="display:none;"></div>
+        <div class="empty-state" id="likeEmpty" style="display:none;"><div class="icon">💜</div>좋아요한 플레이리스트가 없습니다.</div>
+      </div>
+
+    </div>
+
+    <div class="modal-overlay" id="trackModal">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3 id="modalTitle"></h3>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body" id="modalTracks"></div>
+        <div class="modal-foot">
+          <button class="btn-delete" id="modalDeleteBtn">삭제하기</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="profile.js"></script>
+  </body>
+</html>
