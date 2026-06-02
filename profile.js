@@ -195,6 +195,7 @@ function showTrackPanel() {
   document.getElementById("coverPanel").classList.remove("active");
   document.getElementById("coverBackBtn").style.display = "none";
   document.getElementById("modalTitle").textContent = modalTarget?.name || "";
+  document.getElementById("btnEditName").style.display = modalTarget?.type === "playlist" ? "" : "none";
 }
 
 function showCoverPanel() {
@@ -202,6 +203,9 @@ function showCoverPanel() {
   document.getElementById("modalFoot").style.display = "none";
   document.getElementById("coverPanel").classList.add("active");
   document.getElementById("coverBackBtn").style.display = "";
+  document.getElementById("modalTitleWrap").style.display = "";
+  document.getElementById("modalNameEdit").classList.remove("active");
+  document.getElementById("btnEditName").style.display = "none";
   document.getElementById("modalTitle").textContent = "표지 변경";
   selectedCover = null;
   activeUploadDataUrl = null;
@@ -327,6 +331,54 @@ document.getElementById("modalCoverBtn").addEventListener("click", () => {
   if (modalTarget?.type === "playlist") showCoverPanel();
 });
 
+// ── 플레이리스트 이름 변경 ────────────────────────────
+function openNameEdit() {
+  const input = document.getElementById("modalNameInput");
+  input.value = modalTarget?.name || "";
+  document.getElementById("modalTitleWrap").style.display = "none";
+  document.getElementById("modalNameEdit").classList.add("active");
+  input.focus();
+  input.select();
+}
+
+function closeNameEdit() {
+  document.getElementById("modalTitleWrap").style.display = "";
+  document.getElementById("modalNameEdit").classList.remove("active");
+}
+
+document.getElementById("btnEditName").addEventListener("click", openNameEdit);
+document.getElementById("btnNameCancel").addEventListener("click", closeNameEdit);
+
+document.getElementById("modalNameInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btnNameConfirm").click();
+  if (e.key === "Escape") closeNameEdit();
+});
+
+document.getElementById("btnNameConfirm").addEventListener("click", async () => {
+  const newName = document.getElementById("modalNameInput").value.trim();
+  if (!newName) return;
+  if (newName === modalTarget?.name) { closeNameEdit(); return; }
+
+  const btn = document.getElementById("btnNameConfirm");
+  btn.disabled = true;
+  btn.textContent = "...";
+
+  const { ok } = await api("PUT", `/api/user/playlists/${modalTarget.id}/name`, { name: newName });
+
+  btn.disabled = false;
+  btn.textContent = "저장";
+
+  if (ok) {
+    modalTarget.name = newName;
+    document.getElementById("modalTitle").textContent = newName;
+    const card = document.querySelector(`.pl-card[data-id="${modalTarget.id}"] .pl-name`);
+    if (card) card.textContent = newName;
+    closeNameEdit();
+  } else {
+    alert("이름 변경에 실패했습니다.");
+  }
+});
+
 function openModal(type, id, name, tracks, coverImage) {
   modalTarget = { type, id, name, tracks, coverImage };
   document.getElementById("modalTitle").textContent = name;
@@ -342,6 +394,8 @@ function openModal(type, id, name, tracks, coverImage) {
           </div>
         </div>`).join("");
   document.getElementById("modalCoverBtn").style.display = type === "playlist" ? "" : "none";
+  document.getElementById("btnEditName").style.display = type === "playlist" ? "" : "none";
+  closeNameEdit();
   showTrackPanel();
   document.getElementById("trackModal").style.display = "flex";
 }

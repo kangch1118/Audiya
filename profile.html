@@ -151,6 +151,17 @@
       .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:480px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,0.3); backdrop-filter:blur(24px); }
       .modal-head { padding:18px 20px; border-bottom:1px solid var(--divider); display:flex; align-items:center; justify-content:space-between; }
       .modal-head h3 { font-size:15px; font-weight:700; color:var(--text); font-family:"Space Grotesk",sans-serif; }
+      .modal-title-wrap { display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+      .modal-title-wrap h3 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .btn-edit-name { background:none; border:none; box-shadow:none; padding:3px 5px; margin:0; color:var(--sub); cursor:pointer; border-radius:5px; font-size:14px; line-height:1; transition:color 0.2s, background 0.2s; flex-shrink:0; }
+      .btn-edit-name:hover { color:var(--primary); background:var(--chip-bg); transform:none; }
+      .modal-name-edit { display:none; align-items:center; gap:6px; flex:1; min-width:0; }
+      .modal-name-edit.active { display:flex; }
+      .modal-name-input { flex:1; padding:6px 10px; border:1.5px solid var(--primary); border-radius:8px; font-size:14px; font-weight:700; font-family:"Space Grotesk",sans-serif; background:var(--input-bg); color:var(--text); outline:none; min-width:0; }
+      .btn-name-confirm { background:var(--primary); color:#fff; border:none; border-radius:7px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; margin:0; transition:opacity 0.2s; white-space:nowrap; }
+      .btn-name-confirm:hover { opacity:0.85; transform:none; }
+      .btn-name-cancel { background:none; border:none; box-shadow:none; color:var(--sub); cursor:pointer; font-size:18px; padding:2px 4px; margin:0; border-radius:5px; line-height:1; transition:color 0.2s; }
+      .btn-name-cancel:hover { color:var(--text); transform:none; }
       .modal-close { background:none; border:none; box-shadow:none; font-size:20px; color:var(--sub); cursor:pointer; line-height:1; padding:3px; margin:0; border-radius:6px; transition:color 0.2s,background 0.2s; }
       .modal-close:hover { color:var(--text); background:var(--chip-bg); transform:none; }
       .modal-body { overflow-y:auto; padding:14px 20px; flex:1; }
@@ -272,7 +283,15 @@
       <div class="modal-box">
         <div class="modal-head">
           <button class="cover-back-btn" id="coverBackBtn" style="display:none;">← 뒤로</button>
-          <h3 id="modalTitle"></h3>
+          <div class="modal-title-wrap" id="modalTitleWrap">
+            <h3 id="modalTitle"></h3>
+            <button class="btn-edit-name" id="btnEditName" title="이름 변경" style="display:none;">✏️</button>
+          </div>
+          <div class="modal-name-edit" id="modalNameEdit">
+            <input class="modal-name-input" id="modalNameInput" type="text" maxlength="100" />
+            <button class="btn-name-confirm" id="btnNameConfirm">저장</button>
+            <button class="btn-name-cancel" id="btnNameCancel">✕</button>
+          </div>
           <button class="modal-close" id="modalClose">✕</button>
         </div>
 

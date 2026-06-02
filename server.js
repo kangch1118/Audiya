@@ -1951,6 +1951,27 @@ async function handleApi(req, res) {
     return true;
   }
 
+  // 개인 플레이리스트 이름 변경
+  if (pathname.startsWith("/api/user/playlists/") && pathname.endsWith("/name") && req.method === "PUT") {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) { sendJson(res, 401, { message: "인증 토큰이 필요합니다." }); return true; }
+    const playlistId = pathname.replace("/api/user/playlists/", "").replace("/name", "");
+    let payload;
+    try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
+    const name = String(payload.name || "").trim().slice(0, 100);
+    if (!name) { sendJson(res, 400, { message: "이름을 입력해주세요." }); return true; }
+    try {
+      const { data: user } = await supabase.from("users").select("id").eq("auth_token", token).single();
+      if (!user) { sendJson(res, 401, { message: "인증 실패" }); return true; }
+      const { error } = await supabase.from("playlists").update({ name }).eq("id", playlistId).eq("user_id", user.id);
+      if (error) throw error;
+      sendJson(res, 200, { success: true });
+    } catch (_e) {
+      sendJson(res, 500, { message: "이름 변경 실패" });
+    }
+    return true;
+  }
+
   // 개인 플레이리스트 커버 변경
   if (pathname.startsWith("/api/user/playlists/") && pathname.endsWith("/cover") && req.method === "PUT") {
     const token = req.headers.authorization?.replace("Bearer ", "");
