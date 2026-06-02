@@ -294,7 +294,10 @@ async function searchTracks() {
     });
     const data = await res.json();
     if (!res.ok) {
-      searchResults.innerHTML = `<p class='state-msg'>${escHtml(data.error || "검색 실패")}</p>`;
+      const msg = res.status === 429
+        ? "Spotify 요청 한도 초과 — 잠시 후 다시 시도해 주세요"
+        : (data.error || "검색 실패");
+      searchResults.innerHTML = `<p class='state-msg'>${escHtml(msg)}</p>`;
       return;
     }
     const tracks = data.tracks || [];

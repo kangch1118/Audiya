@@ -81,6 +81,7 @@ const spotifyTokenCache = {
   accessToken: "",
   expiresAt: 0,
 };
+const searchCache = new Map(); // query → { tracks, ts }
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -2279,13 +2280,29 @@ async function handleApi(req, res) {
     if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
       sendJson(res, 503, { error: "Spotify 키가 서버에 설정되어 있지 않습니다." }); return true;
     }
-    try {
-      const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
-      sendJson(res, 200, { tracks: results });
-    } catch (e) {
-      console.error("[/api/search]", e?.message || e);
-      sendJson(res, 500, { error: "검색 실패: " + (e?.message || "알 수 없는 오류") });
+    const cacheKey = q.toLowerCase();
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
+      sendJson(res, 200, { tracks: cached.tracks }); return true;
     }
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1500));
+        const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
+        searchCache.set(cacheKey, { tracks: results, ts: Date.now() });
+        sendJson(res, 200, { tracks: results });
+        return true;
+      } catch (e) {
+        lastError = e;
+        if (!String(e?.message).includes("429")) break;
+      }
+    }
+    console.error("[/api/search]", lastError?.message || lastError);
+    const is429 = String(lastError?.message).includes("429");
+    sendJson(res, is429 ? 429 : 500, {
+      error: is429 ? "Spotify 요청 한도 초과 — 잠시 후 다시 시도해 주세요" : "검색 실패: " + (lastError?.message || "알 수 없는 오류")
+    });
     return true;
   }
 
