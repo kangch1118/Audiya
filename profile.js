@@ -52,15 +52,86 @@ async function loadProfile() {
   const { ok, data } = await api("GET", "/api/user/profile");
   if (!ok) { window.location.href = "/login.html"; return; }
 
-  const { username, name, phone } = data.user;
+  const { username, name, phone, avatar_url } = data.user;
   const initial = (name || username || "U").charAt(0).toUpperCase();
 
-  document.getElementById("heroAvatar").textContent = initial;
+  setAvatarDisplay(avatar_url, initial);
   document.getElementById("heroName").textContent = name || username;
   document.getElementById("heroId").textContent = "@" + username;
   document.getElementById("infoUsername").textContent = username;
   document.getElementById("infoPhone").textContent = phone || "—";
   document.getElementById("editName").value = name || "";
+}
+
+function setAvatarDisplay(avatarUrl, initial) {
+  const heroEl = document.getElementById("heroAvatar");
+  if (avatarUrl) {
+    heroEl.innerHTML = `<img src="${avatarUrl}" alt="프로필 사진" />`;
+  } else {
+    heroEl.textContent = initial;
+  }
+
+  const wrap = document.getElementById("photoPreviewWrap");
+  if (wrap) {
+    wrap.innerHTML = avatarUrl
+      ? `<img class="avatar-preview" src="${avatarUrl}" alt="프로필 사진" />`
+      : `<div class="avatar-preview-fallback">${initial}</div>`;
+  }
+}
+
+// ── 프로필 사진 변경 ─────────────────────────────────
+document.getElementById("photoChangeBtn").addEventListener("click", () => {
+  document.getElementById("avatarInput").click();
+});
+
+document.getElementById("avatarInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) return;
+
+  const btn = document.getElementById("photoChangeBtn");
+  btn.disabled = true;
+  btn.textContent = "업로드 중...";
+
+  try {
+    const dataUrl = await resizeImage(file, 200);
+    const { ok, data } = await api("PUT", "/api/user/avatar", { avatar_url: dataUrl });
+    if (ok) {
+      const initial = (document.getElementById("heroName").textContent || "U").charAt(0).toUpperCase();
+      setAvatarDisplay(dataUrl, initial);
+      showMsg("photoError", "photoSuccess", true, "프로필 사진이 변경되었습니다");
+    } else {
+      showMsg("photoError", "photoSuccess", false, data?.message || "사진 변경에 실패했습니다");
+    }
+  } catch (_e) {
+    showMsg("photoError", "photoSuccess", false, "이미지 처리 중 오류가 발생했습니다");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "📷 사진 변경";
+  e.target.value = "";
+});
+
+function resizeImage(file, maxPx) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // ── 이름 변경 ────────────────────────────────────────
@@ -75,7 +146,10 @@ document.getElementById("nameForm").addEventListener("submit", async (e) => {
   if (ok) {
     localStorage.setItem("authName", name);
     document.getElementById("heroName").textContent = name;
-    document.getElementById("heroAvatar").textContent = name.charAt(0).toUpperCase();
+    const avatarEl = document.getElementById("heroAvatar");
+    if (!avatarEl.querySelector("img")) {
+      avatarEl.textContent = name.charAt(0).toUpperCase();
+    }
   }
   setBtn("nameSaveBtn", false, "저장");
 });
@@ -101,22 +175,175 @@ document.getElementById("pwForm").addEventListener("submit", async (e) => {
 // ── 모달 ─────────────────────────────────────────────
 let modalTarget = null; // { type: "playlist"|"like", id, name, tracks }
 
-function openModal(type, id, name, tracks) {
-  modalTarget = { type, id, name, tracks };
+const PALETTES = [
+  { label: "바이올렛", value: "linear-gradient(135deg,#6366f1,#8b5cf6)" },
+  { label: "선셋", value: "linear-gradient(135deg,#f97316,#ec4899)" },
+  { label: "오션", value: "linear-gradient(135deg,#0ea5e9,#6366f1)" },
+  { label: "포레스트", value: "linear-gradient(135deg,#22c55e,#0ea5e9)" },
+  { label: "미드나잇", value: "linear-gradient(135deg,#1e1b4b,#312e81)" },
+  { label: "로즈", value: "linear-gradient(135deg,#f43f5e,#ec4899)" },
+  { label: "골드", value: "linear-gradient(135deg,#f59e0b,#f97316)" },
+  { label: "모노", value: "linear-gradient(135deg,#374151,#6b7280)" },
+];
+
+let selectedCover = null; // { type: "album"|"color"|"upload", value: "..." }
+let activeUploadDataUrl = null;
+
+function showTrackPanel() {
+  document.getElementById("modalTracks").style.display = "";
+  document.getElementById("modalFoot").style.display = "";
+  document.getElementById("coverPanel").classList.remove("active");
+  document.getElementById("coverBackBtn").style.display = "none";
+  document.getElementById("modalTitle").textContent = modalTarget?.name || "";
+}
+
+function showCoverPanel() {
+  document.getElementById("modalTracks").style.display = "none";
+  document.getElementById("modalFoot").style.display = "none";
+  document.getElementById("coverPanel").classList.add("active");
+  document.getElementById("coverBackBtn").style.display = "";
+  document.getElementById("modalTitle").textContent = "표지 변경";
+  selectedCover = null;
+  activeUploadDataUrl = null;
+  buildAlbumTab();
+  buildColorTab();
+  resetUploadTab();
+  activateCoverTab("album");
+}
+
+function buildAlbumTab() {
+  const tracks = (modalTarget?.tracks || []).filter(t => t.coverUrl);
+  const el = document.getElementById("ctabAlbum");
+  if (tracks.length === 0) {
+    el.innerHTML = '<p style="color:var(--sub);font-size:13px;text-align:center;padding:24px 0;">이 플레이리스트에 앨범 표지가 없습니다.</p>';
+    return;
+  }
+  const seen = new Set();
+  const unique = tracks.filter(t => { if (seen.has(t.coverUrl)) return false; seen.add(t.coverUrl); return true; });
+  el.innerHTML = `<div class="cover-album-grid">${unique.map(t => `
+    <div class="cover-album-item" data-url="${t.coverUrl}" title="${t.title}">
+      <img src="${t.coverUrl}" alt="${t.title}" loading="lazy" />
+    </div>`).join("")}</div>`;
+  el.querySelectorAll(".cover-album-item").forEach(item => {
+    item.addEventListener("click", () => {
+      el.querySelectorAll(".cover-album-item").forEach(i => i.classList.remove("selected"));
+      item.classList.add("selected");
+      selectedCover = { type: "album", value: item.dataset.url };
+    });
+  });
+}
+
+function buildColorTab() {
+  const el = document.getElementById("ctabColor");
+  el.innerHTML = `<div class="cover-palette-grid">${PALETTES.map(p => `
+    <div class="cover-palette-item" data-gradient="${p.value}" title="${p.label}" style="background:${p.value};"></div>`).join("")}</div>`;
+  el.querySelectorAll(".cover-palette-item").forEach(item => {
+    item.addEventListener("click", () => {
+      el.querySelectorAll(".cover-palette-item").forEach(i => i.classList.remove("selected"));
+      item.classList.add("selected");
+      selectedCover = { type: "color", value: item.dataset.gradient };
+    });
+  });
+}
+
+function resetUploadTab() {
+  document.getElementById("coverUploadZone").textContent = "📁 클릭해서 이미지 선택";
+  document.getElementById("coverUploadPreview").style.display = "none";
+  document.getElementById("coverUploadPreview").src = "";
+  activeUploadDataUrl = null;
+}
+
+function activateCoverTab(name) {
+  document.querySelectorAll(".cover-tab").forEach(t => t.classList.toggle("active", t.dataset.ctab === name));
+  ["album", "color", "upload"].forEach(n => {
+    const el = document.getElementById("ctab" + n.charAt(0).toUpperCase() + n.slice(1));
+    if (el) el.style.display = n === name ? "" : "none";
+  });
+  if (name !== "upload") { selectedCover = null; activeUploadDataUrl = null; }
+}
+
+document.querySelectorAll(".cover-tab").forEach(tab => {
+  tab.addEventListener("click", () => activateCoverTab(tab.dataset.ctab));
+});
+
+document.getElementById("coverUploadZone").addEventListener("click", () => {
+  document.getElementById("coverFileInput").click();
+});
+
+document.getElementById("coverFileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImage(file, 400);
+    activeUploadDataUrl = dataUrl;
+    selectedCover = { type: "upload", value: dataUrl };
+    const preview = document.getElementById("coverUploadPreview");
+    preview.src = dataUrl;
+    preview.style.display = "block";
+    document.getElementById("coverUploadZone").textContent = "✅ " + file.name;
+  } catch (_e) {
+    alert("이미지 처리 중 오류가 발생했습니다.");
+  }
+  e.target.value = "";
+});
+
+document.getElementById("coverApplyBtn").addEventListener("click", async () => {
+  if (!selectedCover) { alert("표지를 선택해주세요."); return; }
+  if (!modalTarget || modalTarget.type !== "playlist") return;
+
+  const btn = document.getElementById("coverApplyBtn");
+  btn.disabled = true;
+  btn.textContent = "저장 중...";
+  const { ok } = await api("PUT", `/api/user/playlists/${modalTarget.id}/cover`, { cover_image: selectedCover });
+  btn.disabled = false;
+  btn.textContent = "적용하기";
+
+  if (ok) {
+    modalTarget.coverImage = selectedCover;
+    updatePlaylistCardCover(modalTarget.id, selectedCover);
+    showTrackPanel();
+  } else {
+    alert("표지 변경에 실패했습니다.\n(Supabase playlists 테이블에 cover_image 컬럼이 있는지 확인하세요)");
+  }
+});
+
+function updatePlaylistCardCover(id, coverImage) {
+  const card = document.querySelector(`.pl-card[data-id="${id}"]`);
+  if (!card) return;
+  const thumb = card.querySelector(".pl-thumb");
+  if (!thumb) return;
+  if (coverImage.type === "color") {
+    thumb.style.background = coverImage.value;
+    thumb.innerHTML = "";
+  } else {
+    thumb.style.background = "";
+    thumb.innerHTML = `<img src="${coverImage.value}" alt="" loading="lazy" />`;
+  }
+}
+
+document.getElementById("coverBackBtn").addEventListener("click", showTrackPanel);
+
+document.getElementById("modalCoverBtn").addEventListener("click", () => {
+  if (modalTarget?.type === "playlist") showCoverPanel();
+});
+
+function openModal(type, id, name, tracks, coverImage) {
+  modalTarget = { type, id, name, tracks, coverImage };
   document.getElementById("modalTitle").textContent = name;
   document.getElementById("modalTracks").innerHTML = tracks.length === 0
-    ? '<p style="color:#bbb; text-align:center; padding:20px;">곡 정보가 없습니다</p>'
+    ? '<p style="color:var(--sub); text-align:center; padding:20px;">곡 정보가 없습니다</p>'
     : tracks.map((t, i) => `
-        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f5f5f5;">
-          <span style="color:#ccc; font-size:12px; width:22px;">${i + 1}</span>
-          ${t.coverUrl ? `<img src="${t.coverUrl}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;" alt="" />` : `<div style="width:36px;height:36px;border-radius:4px;background:#eee;"></div>`}
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--divider);">
+          <span style="color:var(--sub); font-size:12px; width:22px;">${i + 1}</span>
+          ${t.coverUrl ? `<img src="${t.coverUrl}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;" alt="" />` : `<div style="width:36px;height:36px;border-radius:4px;background:var(--input-border);"></div>`}
           <div>
-            <div style="font-size:13px; font-weight:600; color:#222;">${t.title}</div>
-            <div style="font-size:11px; color:#999;">${t.artist}</div>
+            <div style="font-size:13px; font-weight:600; color:var(--text);">${t.title}</div>
+            <div style="font-size:11px; color:var(--sub);">${t.artist}</div>
           </div>
         </div>`).join("");
-  const modal = document.getElementById("trackModal");
-  modal.style.display = "flex";
+  document.getElementById("modalCoverBtn").style.display = type === "playlist" ? "" : "none";
+  showTrackPanel();
+  document.getElementById("trackModal").style.display = "flex";
 }
 
 document.getElementById("modalClose").addEventListener("click", () => {
@@ -135,16 +362,12 @@ document.getElementById("modalDeleteBtn").addEventListener("click", async () => 
   if (!modalTarget) return;
   if (!confirm(`"${modalTarget.name}"을(를) 삭제하시겠습니까?`)) return;
 
-  const method = "DELETE";
   const url = modalTarget.type === "playlist" ? "/api/user/playlists" : "/api/user/likes";
-  const { ok } = await api(method, url, { id: modalTarget.id });
+  const { ok } = await api("DELETE", url, { id: modalTarget.id });
 
   if (ok) {
     document.getElementById("trackModal").style.display = "none";
     modalTarget = null;
-    if (modalTarget?.type === "playlist") loadPlaylists();
-    else { loadPlaylists(); loadLikes(); }
-    // 타입별 재로드
     loadPlaylists();
     loadLikes();
   } else {
@@ -168,11 +391,20 @@ async function loadPlaylists() {
   grid.style.display = "grid";
   grid.innerHTML = data.playlists.map((pl) => {
     const tracks = Array.isArray(pl.tracks) ? pl.tracks : [];
-    const thumb = tracks[0]?.coverUrl ? `<img src="${tracks[0].coverUrl}" alt="" loading="lazy" />` : "🎵";
+    const ci = pl.cover_image;
+    let thumbContent, thumbStyle = "";
+    if (ci?.type === "color") {
+      thumbStyle = `style="background:${ci.value};"`;
+      thumbContent = "";
+    } else if (ci?.type === "album" || ci?.type === "upload") {
+      thumbContent = `<img src="${ci.value}" alt="" loading="lazy" />`;
+    } else {
+      thumbContent = tracks[0]?.coverUrl ? `<img src="${tracks[0].coverUrl}" alt="" loading="lazy" />` : "🎵";
+    }
     const date = pl.created_at ? new Date(pl.created_at).toLocaleDateString("ko-KR") : "";
     return `
       <div class="pl-card" data-id="${pl.id}" data-type="playlist" style="cursor:pointer;">
-        <div class="pl-thumb">${thumb}</div>
+        <div class="pl-thumb" ${thumbStyle}>${thumbContent}</div>
         <div class="pl-info">
           <div class="pl-name">${pl.name}</div>
           <div class="pl-meta">${tracks.length}곡 · ${date}</div>
@@ -183,7 +415,7 @@ async function loadPlaylists() {
   grid.querySelectorAll(".pl-card").forEach((card) => {
     card.addEventListener("click", () => {
       const pl = data.playlists.find((p) => p.id === card.dataset.id);
-      if (pl) openModal("playlist", pl.id, pl.name, Array.isArray(pl.tracks) ? pl.tracks : []);
+      if (pl) openModal("playlist", pl.id, pl.name, Array.isArray(pl.tracks) ? pl.tracks : [], pl.cover_image);
     });
   });
 }

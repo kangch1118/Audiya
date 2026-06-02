@@ -241,16 +241,6 @@ const localTracks = [
   },
 ];
 
-const defaultSharedPlaylists = [
-  { name: "새벽 감성 버스", owner: "minji", theme: "night + blue", likes: 128 },
-  {
-    name: "시험기간 집중모드",
-    owner: "hyun",
-    theme: "study + green",
-    likes: 97,
-  },
-  { name: "봄산책 설렘곡", owner: "sora", theme: "walk + spring", likes: 142 },
-];
 
 const optionGroups = document.querySelectorAll(".option-group");
 const likesInput = document.querySelector("#likes");
@@ -1805,7 +1795,7 @@ function renderSharedPlaylists(playlists) {
 }
 
 async function fetchSharedPlaylists() {
-  const response = await fetchWithTimeout("/api/playlists");
+  const response = await fetchWithTimeout("/api/playlists?sort=likes");
   if (!response.ok) {
     throw new Error("공유 목록 조회 실패");
   }
@@ -1835,13 +1825,14 @@ async function hydrateSharedPlaylists() {
   try {
     const items = await fetchSharedPlaylists();
     shareApiOnline = true;
-    renderSharedPlaylists(items);
+    const top3 = items.slice(0, 3);
+    renderSharedPlaylists(top3);
     shareHint.textContent = "DB 기반 공유 목록이 연결되었습니다.";
   } catch (_error) {
     shareApiOnline = false;
-    renderSharedPlaylists(defaultSharedPlaylists);
+    renderSharedPlaylists([]);
     shareHint.textContent =
-      "서버 미연결 상태입니다. 기본 공유 목록을 표시합니다. (node server.js 실행 필요)";
+      "서버 미연결 상태입니다. (node server.js 실행 필요)";
   }
 }
 

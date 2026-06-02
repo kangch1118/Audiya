@@ -73,14 +73,20 @@
         content:""; position:absolute; inset:0; pointer-events:none;
         background: radial-gradient(60% 80% at 50% 0%, rgba(255,255,255,0.1) 0%, transparent 70%);
       }
+      .avatar-wrap { position:relative; width:76px; margin:0 auto 14px; z-index:1; }
       .avatar {
         width:76px; height:76px; border-radius:50%;
         background:rgba(255,255,255,0.2); border:2.5px solid rgba(255,255,255,0.5);
         display:flex; align-items:center; justify-content:center;
         font-family:"Space Grotesk",sans-serif; font-size:28px; font-weight:700;
-        margin:0 auto 14px; position:relative; z-index:1;
+        position:relative; overflow:hidden;
         box-shadow:0 4px 20px rgba(0,0,0,0.15);
       }
+      .avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+      .avatar-preview { width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid var(--border); display:block; margin:0 auto 12px; background:var(--input-bg); }
+      .avatar-preview-fallback { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15)); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 12px; font-family:"Space Grotesk",sans-serif; font-weight:700; color:var(--primary); }
+      .btn-photo { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; background:var(--input-bg); border:1.5px solid var(--input-border); border-radius:10px; font-size:13px; font-weight:600; font-family:inherit; color:var(--text); cursor:pointer; transition:border-color 0.2s, background 0.2s; }
+      .btn-photo:hover { border-color:var(--primary); background:var(--chip-bg); }
       .hero-name { font-family:"Space Grotesk",sans-serif; font-size:22px; font-weight:800; margin-bottom:4px; position:relative; z-index:1; }
       .hero-id { font-size:13px; opacity:0.75; position:relative; z-index:1; }
 
@@ -154,10 +160,37 @@
       .m-cover { width:36px; height:36px; border-radius:6px; object-fit:cover; background:var(--input-border); flex-shrink:0; }
       .m-title { font-size:13px; font-weight:600; color:var(--text); }
       .m-artist { font-size:11px; color:var(--sub); }
-      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); }
-      .btn-delete { position:relative; overflow:hidden; width:100%; padding:11px; background:var(--del-bg); color:var(--del-text); border:1.5px solid var(--del-border); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; margin:0; }
+      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); display:flex; gap:8px; }
+      .btn-delete { position:relative; overflow:hidden; flex:1; padding:11px; background:var(--del-bg); color:var(--del-text); border:1.5px solid var(--del-border); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; margin:0; }
       .btn-delete:hover { background:var(--del-text); color:#fff; transform:none; }
       .btn-delete:active { transform:scale(0.97); transition-duration:0.06s; }
+      .btn-cover-change { position:relative; overflow:hidden; padding:11px 16px; background:var(--chip-bg); color:var(--primary); border:1.5px solid var(--chip-border); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; margin:0; white-space:nowrap; }
+      .btn-cover-change:hover { background:var(--primary); color:#fff; border-color:var(--primary); transform:none; }
+
+      /* 커버 변경 패널 */
+      .cover-panel { display:none; flex-direction:column; height:100%; }
+      .cover-panel.active { display:flex; }
+      .cover-tabs { display:flex; border-bottom:1px solid var(--divider); }
+      .cover-tab { flex:1; padding:11px 0; background:none; border:none; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:inherit; transition:all 0.2s; box-shadow:none; margin:0; }
+      .cover-tab.active { color:var(--primary); border-color:var(--primary); font-weight:700; }
+      .cover-tab-body { overflow-y:auto; flex:1; padding:16px 20px; }
+      .cover-album-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+      .cover-album-item { aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2.5px solid transparent; transition:border-color 0.15s, transform 0.15s; background:var(--input-bg); }
+      .cover-album-item:hover { transform:scale(1.04); }
+      .cover-album-item.selected { border-color:var(--primary); }
+      .cover-album-item img { width:100%; height:100%; object-fit:cover; display:block; }
+      .cover-palette-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+      .cover-palette-item { aspect-ratio:1; border-radius:10px; cursor:pointer; border:2.5px solid transparent; transition:border-color 0.15s, transform 0.15s; }
+      .cover-palette-item:hover { transform:scale(1.06); }
+      .cover-palette-item.selected { border-color:#fff; box-shadow:0 0 0 2px var(--primary); }
+      .cover-upload-zone { border:2px dashed var(--input-border); border-radius:12px; padding:32px 16px; text-align:center; cursor:pointer; transition:border-color 0.2s, background 0.2s; color:var(--muted); font-size:13px; }
+      .cover-upload-zone:hover { border-color:var(--primary); background:rgba(99,102,241,0.04); }
+      .cover-upload-preview { width:100%; max-height:180px; object-fit:cover; border-radius:10px; margin-top:12px; display:none; }
+      .cover-apply-btn { position:relative; overflow:hidden; width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px; transition:opacity 0.2s; }
+      .cover-apply-btn:hover { opacity:0.9; }
+      .cover-apply-btn:disabled { opacity:0.5; cursor:not-allowed; }
+      .cover-back-btn { background:none; border:none; font-size:13px; color:var(--muted); cursor:pointer; padding:0; font-family:inherit; display:flex; align-items:center; gap:4px; box-shadow:none; transition:color 0.2s; margin:0; }
+      .cover-back-btn:hover { color:var(--text); transform:none; }
 
       /* 리플 */
       @keyframes ripple { 0%{transform:scale(0);opacity:0.55} 100%{transform:scale(2.5);opacity:0} }
@@ -172,7 +205,10 @@
     </div>
 
     <div class="hero">
-      <div class="avatar" id="heroAvatar">?</div>
+      <div class="avatar-wrap">
+        <div class="avatar" id="heroAvatar">?</div>
+      </div>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none;" />
       <div class="hero-name" id="heroName">로딩 중...</div>
       <div class="hero-id" id="heroId">@—</div>
     </div>
@@ -185,6 +221,13 @@
 
     <div class="content">
       <div class="panel active" id="panelInfo">
+        <div class="section-card">
+          <div class="section-title">프로필 사진</div>
+          <div id="photoPreviewWrap"></div>
+          <button type="button" class="btn-photo" id="photoChangeBtn">📷 사진 변경</button>
+          <div class="alert alert-error" id="photoError"></div>
+          <div class="alert alert-success" id="photoSuccess"></div>
+        </div>
         <div class="section-card">
           <div class="section-title">기본 정보</div>
           <div class="info-row"><span class="info-label">아이디</span><span class="info-value" id="infoUsername">—</span></div>
@@ -228,13 +271,41 @@
     <div class="modal-overlay" id="trackModal">
       <div class="modal-box">
         <div class="modal-head">
+          <button class="cover-back-btn" id="coverBackBtn" style="display:none;">← 뒤로</button>
           <h3 id="modalTitle"></h3>
           <button class="modal-close" id="modalClose">✕</button>
         </div>
+
+        <!-- 트랙 목록 패널 -->
         <div class="modal-body" id="modalTracks"></div>
-        <div class="modal-foot">
+        <div class="modal-foot" id="modalFoot">
+          <button class="btn-cover-change" id="modalCoverBtn">🖼 표지 변경</button>
           <button class="btn-delete" id="modalDeleteBtn">삭제하기</button>
         </div>
+
+        <!-- 커버 변경 패널 -->
+        <div class="cover-panel" id="coverPanel">
+          <div class="cover-tabs">
+            <button class="cover-tab active" data-ctab="album">앨범 표지</button>
+            <button class="cover-tab" data-ctab="color">색상 팔레트</button>
+            <button class="cover-tab" data-ctab="upload">사진 업로드</button>
+          </div>
+          <div class="cover-tab-body">
+            <div id="ctabAlbum"></div>
+            <div id="ctabColor" style="display:none;"></div>
+            <div id="ctabUpload" style="display:none;">
+              <div class="cover-upload-zone" id="coverUploadZone">
+                📁 클릭해서 이미지 선택
+              </div>
+              <img class="cover-upload-preview" id="coverUploadPreview" alt="미리보기" />
+            </div>
+          </div>
+          <div style="padding:0 20px 16px;">
+            <button class="cover-apply-btn" id="coverApplyBtn">적용하기</button>
+          </div>
+        </div>
+
+        <input type="file" id="coverFileInput" accept="image/*" style="display:none;" />
       </div>
     </div>
 

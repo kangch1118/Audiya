@@ -241,7 +241,7 @@ async function getUserProfile(token) {
   try {
     const { data, error } = await supabase
       .from("users")
-      .select("id, username, name, phone, created_at, preferences")
+      .select("id, username, name, phone, created_at, preferences, avatar_url")
       .eq("auth_token", token)
       .single();
 
@@ -1814,6 +1814,25 @@ async function handleApi(req, res) {
     return true;
   }
 
+  // 프로필 사진 변경
+  if (pathname === "/api/user/avatar" && req.method === "PUT") {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) { sendJson(res, 401, { message: "인증 토큰이 필요합니다." }); return true; }
+    let payload;
+    try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
+    const avatarUrl = String(payload.avatar_url || "").trim();
+    if (!avatarUrl) { sendJson(res, 400, { message: "이미지 데이터가 없습니다." }); return true; }
+    if (avatarUrl.length > 300000) { sendJson(res, 400, { message: "이미지 크기가 너무 큽니다. (최대 200KB)" }); return true; }
+    try {
+      const { error } = await supabase.from("users").update({ avatar_url: avatarUrl }).eq("auth_token", token);
+      if (error) throw error;
+      sendJson(res, 200, { success: true });
+    } catch (_e) {
+      sendJson(res, 500, { message: "프로필 사진 변경에 실패했습니다." });
+    }
+    return true;
+  }
+
   // 비밀번호 변경
   if (pathname === "/api/user/password" && req.method === "PUT") {
     const token = req.headers.authorization?.replace("Bearer ", "");
@@ -1928,6 +1947,28 @@ async function handleApi(req, res) {
       sendJson(res, 201, result);
     } else {
       sendJson(res, 401, { message: result.message });
+    }
+    return true;
+  }
+
+  // 개인 플레이리스트 커버 변경
+  if (pathname.startsWith("/api/user/playlists/") && pathname.endsWith("/cover") && req.method === "PUT") {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) { sendJson(res, 401, { message: "인증 토큰이 필요합니다." }); return true; }
+    const playlistId = pathname.replace("/api/user/playlists/", "").replace("/cover", "");
+    let payload;
+    try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
+    const coverImage = payload.cover_image;
+    if (!coverImage || !coverImage.type || !coverImage.value) { sendJson(res, 400, { message: "cover_image 형식 오류" }); return true; }
+    if (coverImage.type === "upload" && coverImage.value.length > 300000) { sendJson(res, 400, { message: "이미지 크기가 너무 큽니다." }); return true; }
+    try {
+      const { data: user } = await supabase.from("users").select("id").eq("auth_token", token).single();
+      if (!user) { sendJson(res, 401, { message: "인증 실패" }); return true; }
+      const { error } = await supabase.from("playlists").update({ cover_image: coverImage }).eq("id", playlistId).eq("user_id", user.id);
+      if (error) throw error;
+      sendJson(res, 200, { success: true });
+    } catch (_e) {
+      sendJson(res, 500, { message: "커버 변경 실패" });
     }
     return true;
   }
