@@ -2273,15 +2273,15 @@ async function handleApi(req, res) {
     return true;
   }
 
-  if (pathname === "/api/search" && req.method === "GET") {
-    const q = String(requestUrl.searchParams.get("q") || "").trim();
-    if (!q) { sendJson(res, 400, { error: "검색어를 입력하세요." }); return true; }
-    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) { sendJson(res, 503, { error: "Spotify 미설정" }); return true; }
+  if (pathname === "/api/spotify/token" && req.method === "GET") {
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      sendJson(res, 503, { error: "Spotify 미설정" }); return true;
+    }
     try {
-      const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
-      sendJson(res, 200, { tracks: results });
-    } catch (_e) {
-      sendJson(res, 500, { error: "검색 실패" });
+      const token = await getSpotifyAccessToken();
+      sendJson(res, 200, { token });
+    } catch (e) {
+      sendJson(res, 500, { error: e?.message || "토큰 발급 실패" });
     }
     return true;
   }

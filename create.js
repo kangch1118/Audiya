@@ -283,27 +283,52 @@ plSelect.addEventListener("change", () => {
 });
 
 // ── Search ────────────────────────────────────────────
+let spotifyToken = null;
+let spotifyTokenExpiry = 0;
+
+async function getSpotifyToken() {
+  if (spotifyToken && Date.now() < spotifyTokenExpiry) return spotifyToken;
+  const res = await fetch("/api/spotify/token");
+  if (!res.ok) throw new Error("토큰 발급 실패");
+  const data = await res.json();
+  spotifyToken = data.token;
+  spotifyTokenExpiry = Date.now() + 55 * 60 * 1000; // 55분 캐시
+  return spotifyToken;
+}
+
 async function searchTracks() {
   const q = searchInput.value.trim();
   if (!q) return;
   searchBtn.disabled = true;
   searchResults.innerHTML = "<p class='state-msg'>검색 중...</p>";
   try {
-    const res = await fetch("/api/search?q=" + encodeURIComponent(q));
+    const token = await getSpotifyToken();
+    const res = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&market=KR&limit=20`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error(`Spotify ${res.status}`);
     const data = await res.json();
+    const items = data?.tracks?.items || [];
     searchResults.innerHTML = "";
-    if (!res.ok) {
-      searchResults.innerHTML = `<p class='state-msg'>${escHtml(data.error || "검색 실패")}</p>`;
-      return;
-    }
-    const tracks = data.tracks || [];
-    if (!tracks.length) {
+    if (!items.length) {
       searchResults.innerHTML = "<p class='state-msg'>결과가 없습니다</p>";
       return;
     }
-    tracks.forEach(t => renderSourceTrack(t, searchResults));
-  } catch {
-    searchResults.innerHTML = "<p class='state-msg'>검색 중 오류가 발생했습니다</p>";
+    items.forEach(item => {
+      const track = {
+        title: item.name,
+        artist: item.artists.map(a => a.name).join(", "),
+        coverUrl: item.album?.images?.[0]?.url || "",
+        source: "spotify",
+        spotifyUrl: item.external_urls?.spotify || "",
+        previewUrl: item.preview_url || "",
+        genre: "",
+      };
+      renderSourceTrack(track, searchResults);
+    });
+  } catch (e) {
+    searchResults.innerHTML = `<p class='state-msg'>검색 실패: ${escHtml(e.message)}</p>`;
   } finally {
     searchBtn.disabled = false;
   }
