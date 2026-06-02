@@ -289,6 +289,7 @@ async function handleLikePlaylist(playlist, e) {
   if (!token) { window.location.href = "/login.html"; return; }
   const btn = e.currentTarget;
   const id = String(playlist.id);
+  const countEl = btn.closest("div")?.querySelector(".likes-count");
   try {
     const res = await fetch("/api/user/likes", {
       method: "POST",
@@ -297,8 +298,19 @@ async function handleLikePlaylist(playlist, e) {
     });
     const data = await res.json();
     if (res.ok) {
-      if (data.liked) { likedPlaylistIds.add(id); btn.textContent = "💜"; btn.title = "좋아요 취소"; }
-      else { likedPlaylistIds.delete(id); btn.textContent = "🤍"; btn.title = "좋아요"; }
+      if (data.liked) {
+        likedPlaylistIds.add(id);
+        btn.textContent = "💜"; btn.title = "좋아요 취소";
+        const cur = parseInt(btn.dataset.likes || "0");
+        btn.dataset.likes = cur + 1;
+        if (countEl) countEl.textContent = (cur + 1) + " likes";
+      } else {
+        likedPlaylistIds.delete(id);
+        btn.textContent = "🤍"; btn.title = "좋아요";
+        const cur = parseInt(btn.dataset.likes || "0");
+        btn.dataset.likes = Math.max(0, cur - 1);
+        if (countEl) countEl.textContent = Math.max(0, cur - 1) + " likes";
+      }
     }
   } catch (_e) {}
 }
@@ -1784,11 +1796,12 @@ function renderSharedPlaylists(playlists) {
       <p class="meta">@${playlist.owner}</p>
       <p class="meta">${playlist.theme}</p>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
-        <span class="meta">${playlist.likes || 0} likes</span>
+        <span class="likes-count meta">${playlist.likes || 0} likes</span>
         <button
           class="like-btn"
           data-id="${playlist.id}"
           data-name="${playlist.name}"
+          data-likes="${playlist.likes || 0}"
           style="background:none; border:none; font-size:18px; cursor:pointer; padding:2px 4px; line-height:1;"
           title="${isLiked ? "좋아요 취소" : "좋아요"}"
         >${isLiked ? "💜" : "🤍"}</button>
