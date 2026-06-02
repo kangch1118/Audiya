@@ -2036,12 +2036,28 @@ async function recommend(options = {}) {
         if (s && s.index >= 1) scoreMap[s.index - 1] = s;
       });
 
+      // AI가 판별한 origin을 트랙에 반영
+      const aiTagged = scoredForGpt.map((track, i) => {
+        const gs = scoreMap[i];
+        if (gs && gs.origin && ["domestic","japan","global"].includes(gs.origin)) {
+          return { ...track, origin: gs.origin };
+        }
+        return track;
+      });
+
+      // origin이 지정된 경우 AI 태깅 기반 하드필터 재적용
+      const aiFiltered = context.origin === "all"
+        ? aiTagged
+        : aiTagged.filter((t) => t.origin === context.origin);
+
       // origin 지정 시 기준 점수 상향
       const minGptScore = context.origin !== "all" ? 6 : 5;
 
-      recommended = scoredForGpt
+      recommended = aiFiltered
         .map((track, i) => {
-          const gs = scoreMap[i];
+          // aiTagged 인덱스로 scoreMap 매핑
+          const origIdx = aiTagged.indexOf(track);
+          const gs = scoreMap[origIdx];
           if (!gs || gs.score < minGptScore) return null;
           return {
             ...track,

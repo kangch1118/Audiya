@@ -1500,12 +1500,17 @@ ${originRule}
 ${hasPrimary ? "PRIMARY SIGNALS 아티스트와 스타일이 유사할수록 높은 점수." : ""}
 점수 기준: 0=전혀 안 맞음, 5=보통, 7=잘 맞음, 10=완벽히 맞음
 
+각 곡의 국적(origin)도 판별해줘:
+- "domestic" = 한국 아티스트/한국 음악
+- "japan"    = 일본 아티스트/일본 음악
+- "global"   = 그 외 (미국·영국·유럽 등 서양)
+
 ${trackList}
 
 Return JSON:
 {
   "scores": [
-    {"index": 1, "score": 8, "reason": "이유를 한국어로 간단히"},
+    {"index": 1, "score": 8, "origin": "domestic", "reason": "이유를 한국어로 간단히"},
     ...
   ]
 }`;
