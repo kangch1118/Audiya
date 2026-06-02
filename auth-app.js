@@ -48,10 +48,14 @@ function updateAuthUi() {
       }
     }
     if (savePlBtn) savePlBtn.style.display = "";
+    const createBtn = document.getElementById("createPlBtn");
+    if (createBtn) createBtn.style.display = "";
   } else {
     if (authLink) authLink.style.display = "";
     if (profileLink) profileLink.style.display = "none";
     if (savePlBtn) savePlBtn.style.display = "none";
+    const createBtn = document.getElementById("createPlBtn");
+    if (createBtn) createBtn.style.display = "none";
   }
 }
 
