@@ -99,6 +99,7 @@ document.getElementById("avatarInput").addEventListener("change", async (e) => {
     if (ok) {
       const initial = (document.getElementById("heroName").textContent || "U").charAt(0).toUpperCase();
       setAvatarDisplay(dataUrl, initial);
+      localStorage.setItem("authAvatarUrl", dataUrl);
       showMsg("photoError", "photoSuccess", true, "프로필 사진이 변경되었습니다");
     } else {
       showMsg("photoError", "photoSuccess", false, data?.message || "사진 변경에 실패했습니다");

@@ -1192,6 +1192,7 @@ function toCommunityItem(item) {
     likes: item.likes || 0,
     createdAt: item.created_at,
     tracks: Array.isArray(item.tracks) ? item.tracks : [],
+    coverImage: item.cover_image || null,
   };
 }
 
@@ -1987,6 +1988,8 @@ async function handleApi(req, res) {
       if (!user) { sendJson(res, 401, { message: "인증 실패" }); return true; }
       const { error } = await supabase.from("playlists").update({ cover_image: coverImage }).eq("id", playlistId).eq("user_id", user.id);
       if (error) throw error;
+      // 공유된 커뮤니티 플레이리스트에도 동기화
+      await supabase.from("community_playlists").update({ cover_image: coverImage }).eq("source_playlist_id", playlistId);
       sendJson(res, 200, { success: true });
     } catch (_e) {
       sendJson(res, 500, { message: "커버 변경 실패" });
@@ -2082,6 +2085,8 @@ async function handleApi(req, res) {
       genres: Array.isArray(payload.genres) ? payload.genres : extractGenres(tracks),
       likes: 0,
       tracks,
+      cover_image: payload.cover_image || null,
+      source_playlist_id: payload.source_playlist_id ? String(payload.source_playlist_id) : null,
     };
     try {
       const { data, error } = await supabase.from("community_playlists").insert(item).select().single();

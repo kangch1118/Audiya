@@ -39,7 +39,14 @@ function updateAuthUi() {
   if (token && name) {
     if (authLink) authLink.style.display = "none";
     if (profileLink) profileLink.style.display = "inline-flex";
-    if (profileAvatar) profileAvatar.textContent = name.charAt(0).toUpperCase();
+    if (profileAvatar) {
+      const avatarUrl = localStorage.getItem("authAvatarUrl");
+      if (avatarUrl) {
+        profileAvatar.innerHTML = `<img src="${avatarUrl}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+      } else {
+        profileAvatar.textContent = name.charAt(0).toUpperCase();
+      }
+    }
     if (savePlBtn) savePlBtn.style.display = "";
   } else {
     if (authLink) authLink.style.display = "";
@@ -49,3 +56,21 @@ function updateAuthUi() {
 }
 
 updateAuthUi();
+
+// 로그인 상태면 프로필 API에서 avatar_url 가져와 반영
+(async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+  try {
+    const res = await fetch("/api/user/profile", { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const avatarUrl = data?.user?.avatar_url || null;
+    if (avatarUrl) {
+      localStorage.setItem("authAvatarUrl", avatarUrl);
+    } else {
+      localStorage.removeItem("authAvatarUrl");
+    }
+    updateAuthUi();
+  } catch (_e) {}
+})();

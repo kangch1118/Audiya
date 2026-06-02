@@ -1760,20 +1760,25 @@ function renderSharedPlaylists(playlists) {
   }
 
   playlists.forEach((playlist) => {
-    const firstTrack =
-      Array.isArray(playlist.tracks) && playlist.tracks.length > 0
-        ? playlist.tracks[0]
-        : null;
-    const thumbHtml =
-      firstTrack && firstTrack.coverUrl
+    const ci = playlist.coverImage;
+    let thumbHtml, coverStyle = "";
+    if (ci?.type === "color") {
+      coverStyle = `style="background:${ci.value};"`;
+      thumbHtml = "";
+    } else if (ci?.type === "album" || ci?.type === "upload") {
+      thumbHtml = `<img src="${ci.value}" alt="${playlist.name}" loading="lazy" />`;
+    } else {
+      const firstTrack = Array.isArray(playlist.tracks) && playlist.tracks.length > 0 ? playlist.tracks[0] : null;
+      thumbHtml = firstTrack?.coverUrl
         ? `<img src="${firstTrack.coverUrl}" alt="${playlist.name} 썸네일" loading="lazy" />`
         : '<div class="album-fallback">🎼</div>';
+    }
     const isLiked = likedPlaylistIds.has(String(playlist.id));
     const item = document.createElement("article");
     item.className = "share-card";
     item.innerHTML = `
       <div class="card-top">
-        <div class="album-cover">${thumbHtml}</div>
+        <div class="album-cover" ${coverStyle}>${thumbHtml}</div>
         <h3>${playlist.name}</h3>
       </div>
       <p class="meta">@${playlist.owner}</p>

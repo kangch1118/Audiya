@@ -143,6 +143,8 @@ async function loadSavedPlaylists() {
       const { ok } = await apiFetch("POST", "/api/playlists", {
         name: name.trim() || pl.name, owner: authName || "익명",
         theme: "내 플레이리스트", tracks, genres,
+        cover_image: pl.cover_image || null,
+        source_playlist_id: pl.id,
       });
       if (ok) {
         showAlert("savedShareError", "savedShareSuccess", true, `"${name}" 공유 완료!`);
@@ -186,12 +188,21 @@ function renderCommunity() {
 
   grid.innerHTML = communityPlaylists.map((pl) => {
     const tracks = Array.isArray(pl.tracks) ? pl.tracks : [];
-    const thumb = tracks[0]?.coverUrl ? `<img src="${tracks[0].coverUrl}" alt="" loading="lazy" />` : "🎵";
+    const ci = pl.coverImage;
+    let thumbHtml, thumbStyle = "";
+    if (ci?.type === "color") {
+      thumbStyle = `style="background:${ci.value};"`;
+      thumbHtml = "";
+    } else if (ci?.type === "album" || ci?.type === "upload") {
+      thumbHtml = `<img src="${ci.value}" alt="" loading="lazy" />`;
+    } else {
+      thumbHtml = tracks[0]?.coverUrl ? `<img src="${tracks[0].coverUrl}" alt="" loading="lazy" />` : "🎵";
+    }
     const isLiked = likedIds.has(String(pl.id));
     const isOwner = myUsername && pl.ownerUsername === myUsername;
     return `
       <div class="pl-card" data-id="${pl.id}">
-        <div class="pl-thumb">${thumb}</div>
+        <div class="pl-thumb" ${thumbStyle}>${thumbHtml}</div>
         <div class="pl-body">
           <div class="pl-name">${pl.name}</div>
           <div class="pl-owner">@${pl.owner}${isOwner ? " <span style='color:var(--primary);font-size:10px;'>내 글</span>" : ""}</div>
