@@ -57,6 +57,8 @@ const DB_FILE = path.join(DB_DIR, "playlists.json");
 const FEEDBACK_DB_FILE = path.join(DB_DIR, "feedback_events.json");
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "";
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || "";
+const SPOTIFY_CLIENT_ID_2 = process.env.SPOTIFY_CLIENT_ID_2 || "";
+const SPOTIFY_CLIENT_SECRET_2 = process.env.SPOTIFY_CLIENT_SECRET_2 || "";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_EMBED_MODEL =
@@ -77,10 +79,17 @@ const EXTERNAL_FETCH_TIMEOUT_MS = (() => {
   return Math.max(2000, raw);
 })();
 
-const spotifyTokenCache = {
-  accessToken: "",
-  expiresAt: 0,
-};
+// Spotify 자격증명 풀 (429 시 자동 전환)
+const spotifyCredentials = [
+  { id: SPOTIFY_CLIENT_ID, secret: SPOTIFY_CLIENT_SECRET, cache: { accessToken: "", expiresAt: 0 }, rateLimitedUntil: 0 },
+];
+// 2번 키가 설정된 경우에만 풀에 추가
+if (SPOTIFY_CLIENT_ID_2 && SPOTIFY_CLIENT_SECRET_2) {
+  spotifyCredentials.push({ id: SPOTIFY_CLIENT_ID_2, secret: SPOTIFY_CLIENT_SECRET_2, cache: { accessToken: "", expiresAt: 0 }, rateLimitedUntil: 0 });
+}
+let activeCredIdx = 0;
+
+const spotifyTokenCache = spotifyCredentials[0].cache; // 기존 코드 호환용
 const searchCache = new Map(); // query → { tracks, ts }
 
 const CONTENT_TYPES = {
@@ -777,39 +786,48 @@ function pickBestSpotifyMatch(queryTitle, queryArtist, candidates) {
   return best;
 }
 
-async function getSpotifyAccessToken() {
+async function getSpotifyTokenForCred(cred) {
   const now = Date.now();
-  if (
-    spotifyTokenCache.accessToken &&
-    spotifyTokenCache.expiresAt > now + 30 * 1000
-  ) {
-    return spotifyTokenCache.accessToken;
+  if (cred.cache.accessToken && cred.cache.expiresAt > now + 30 * 1000) {
+    return cred.cache.accessToken;
   }
-
-  const basicToken = Buffer.from(
-    `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`,
-  ).toString("base64");
-  const response = await fetchWithTimeout(
-    "https://accounts.spotify.com/api/token",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${basicToken}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: "grant_type=client_credentials",
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`spotify-token-failed:${response.status}`);
-  }
-
+  const basicToken = Buffer.from(`${cred.id}:${cred.secret}`).toString("base64");
+  const response = await fetchWithTimeout("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: { Authorization: `Basic ${basicToken}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials",
+  });
+  if (!response.ok) throw new Error(`spotify-token-failed:${response.status}`);
   const data = await response.json();
   const expiresIn = Number(data.expires_in || 3600);
-  spotifyTokenCache.accessToken = data.access_token;
-  spotifyTokenCache.expiresAt = now + expiresIn * 1000;
-  return spotifyTokenCache.accessToken;
+  cred.cache.accessToken = data.access_token;
+  cred.cache.expiresAt = now + expiresIn * 1000;
+  return cred.cache.accessToken;
+}
+
+async function getSpotifyAccessToken() {
+  const now = Date.now();
+  // rate limited 되지 않은 첫 번째 자격증명 선택
+  for (let i = 0; i < spotifyCredentials.length; i++) {
+    const idx = (activeCredIdx + i) % spotifyCredentials.length;
+    const cred = spotifyCredentials[idx];
+    if (!cred.id || !cred.secret) continue;
+    if (cred.rateLimitedUntil > now) continue;
+    return await getSpotifyTokenForCred(cred);
+  }
+  // 모두 rate limited → 가장 빨리 해제되는 것 사용
+  const best = spotifyCredentials.filter(c => c.id && c.secret).sort((a, b) => a.rateLimitedUntil - b.rateLimitedUntil)[0];
+  if (!best) throw new Error("Spotify 자격증명 없음");
+  return await getSpotifyTokenForCred(best);
+}
+
+function markSpotifyRateLimited(retryAfterSec = 60) {
+  const now = Date.now();
+  const cred = spotifyCredentials[activeCredIdx % spotifyCredentials.length];
+  if (cred) cred.rateLimitedUntil = now + retryAfterSec * 1000;
+  // 다음 자격증명으로 전환
+  activeCredIdx = (activeCredIdx + 1) % spotifyCredentials.length;
+  console.log(`[Spotify] 키 ${activeCredIdx + 1}로 전환 (${retryAfterSec}초 후 복구)`);
 }
 
 async function fetchSpotifyPlaylist(playlistId) {
@@ -912,6 +930,11 @@ async function searchSpotifyTracks(term, options = {}) {
     },
   });
 
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get("retry-after") || "60", 10);
+    markSpotifyRateLimited(retryAfter);
+    throw new Error(`spotify-search-failed:429`);
+  }
   if (!response.ok) {
     throw new Error(`spotify-search-failed:${response.status}`);
   }
