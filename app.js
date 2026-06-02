@@ -328,12 +328,11 @@ async function loadWeeklyRanking() {
     }
     const medals = ["🥇", "🥈", "🥉", "4", "5"];
     el.innerHTML = items.map((pl, i) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;"
-           onclick="window.location.href='/share.html'">
-        <span style="font-size:${i < 3 ? "20px" : "13px"};width:24px;text-align:center;flex-shrink:0;">${medals[i]}</span>
+      <div class="weekly-item" onclick="window.location.href='/share.html'">
+        <span class="weekly-medal" style="font-size:${i < 3 ? "20px" : "13px"};">${medals[i]}</span>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${pl.name}</div>
-          <div style="font-size:11px;color:#aaa;">@${pl.owner} · ♥ ${pl.weeklyLikes || pl.likes || 0}</div>
+          <div class="weekly-name">${pl.name}</div>
+          <div class="weekly-meta">@${pl.owner} · ♥ ${pl.weeklyLikes || pl.likes || 0}</div>
         </div>
       </div>`).join("");
   } catch (_e) {
