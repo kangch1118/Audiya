@@ -1952,6 +1952,28 @@ async function handleApi(req, res) {
     return true;
   }
 
+  // 커뮤니티 플레이리스트 장르 업데이트 (본인 소유만)
+  if (pathname.startsWith("/api/playlists/") && pathname.endsWith("/genres") && req.method === "PUT") {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) { sendJson(res, 401, { message: "인증 토큰이 필요합니다." }); return true; }
+    const playlistId = pathname.replace("/api/playlists/", "").replace("/genres", "");
+    let payload;
+    try { payload = await readJsonBody(req); } catch (_e) { sendJson(res, 400, { message: "잘못된 요청" }); return true; }
+    const genres = Array.isArray(payload.genres) ? payload.genres.slice(0, 3) : [];
+    const VALID = ["kpop","jpop","pop","hiphop","rnb","band","edm","indie","ballad"];
+    const clean = genres.filter(g => VALID.includes(g));
+    try {
+      const { data: user } = await supabase.from("users").select("username").eq("auth_token", token).single();
+      if (!user) { sendJson(res, 401, { message: "인증 실패" }); return true; }
+      const { error } = await supabase.from("community_playlists").update({ genres: clean }).eq("id", playlistId).eq("owner_username", user.username);
+      if (error) throw error;
+      sendJson(res, 200, { success: true, genres: clean });
+    } catch (_e) {
+      sendJson(res, 500, { message: "장르 업데이트 실패" });
+    }
+    return true;
+  }
+
   // 개인 플레이리스트 이름 변경
   if (pathname.startsWith("/api/user/playlists/") && pathname.endsWith("/name") && req.method === "PUT") {
     const token = req.headers.authorization?.replace("Bearer ", "");

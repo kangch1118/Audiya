@@ -10,6 +10,85 @@ let communityPlaylists = [];
 let likedIds = new Set();
 let modalPlaylist = null;
 
+// ── 장르 상수 ─────────────────────────────────────────
+const GENRE_LIST = [
+  { value: "kpop", label: "K-POP" }, { value: "jpop", label: "J-POP" },
+  { value: "pop", label: "POP" }, { value: "hiphop", label: "힙합" },
+  { value: "rnb", label: "R&B" }, { value: "band", label: "밴드" },
+  { value: "edm", label: "EDM" }, { value: "indie", label: "인디" },
+  { value: "ballad", label: "발라드" },
+];
+const GENRE_LABEL = Object.fromEntries(GENRE_LIST.map(g => [g.value, g.label]));
+
+function buildGenreChips(container, initial = [], maxSelect = 3) {
+  const selected = new Set(initial);
+  container.innerHTML = GENRE_LIST.map(g =>
+    `<button type="button" class="genre-chip${selected.has(g.value) ? " selected" : ""}" data-value="${g.value}">${g.label}</button>`
+  ).join("");
+  container.querySelectorAll(".genre-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      if (chip.classList.contains("selected")) {
+        chip.classList.remove("selected");
+        selected.delete(chip.dataset.value);
+      } else {
+        if (selected.size >= maxSelect) return;
+        chip.classList.add("selected");
+        selected.add(chip.dataset.value);
+      }
+    });
+  });
+  return { getSelected: () => [...selected] };
+}
+
+// ── 공유 모달 (저장 목록 공유) ────────────────────────
+let shareModalPl = null;
+let shareModalGenrePicker = null;
+
+function closeShareModal() {
+  document.getElementById("shareModal").classList.remove("open");
+  document.getElementById("shareModalName").style.display = "";
+  document.getElementById("shareModalName").previousElementSibling.style.display = "";
+  shareModalPl = null; genreEditPl = null;
+}
+document.getElementById("shareModalClose").addEventListener("click", closeShareModal);
+document.getElementById("shareModal").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeShareModal();
+});
+
+function openShareModal(pl) {
+  shareModalPl = pl;
+  document.getElementById("shareModalTitle").textContent = "공유하기";
+  document.getElementById("shareModalName").style.display = "";
+  document.getElementById("shareModalName").previousElementSibling.style.display = "";
+  document.getElementById("shareModalName").value = pl.name;
+  document.getElementById("shareModalConfirm").textContent = "공유하기";
+  const chipsEl = document.getElementById("shareModalGenreChips");
+  shareModalGenrePicker = buildGenreChips(chipsEl, []);
+  document.getElementById("shareModalConfirm").onclick = async () => {
+    const name = document.getElementById("shareModalName").value.trim();
+    if (!name) return;
+    const genres = shareModalGenrePicker?.getSelected() || [];
+    const btn = document.getElementById("shareModalConfirm");
+    btn.disabled = true; btn.textContent = "공유 중...";
+    const tracks = Array.isArray(pl.tracks) ? pl.tracks : [];
+    const { ok } = await apiFetch("POST", "/api/playlists", {
+      name, owner: authName || "익명", theme: "내 플레이리스트", tracks,
+      genres: genres.length > 0 ? genres : extractGenres(tracks),
+      cover_image: pl.cover_image || null,
+      source_playlist_id: pl.id,
+    });
+    btn.disabled = false; btn.textContent = "공유하기";
+    if (ok) {
+      closeShareModal();
+      showAlert("savedShareError", "savedShareSuccess", true, `"${name}" 공유 완료!`);
+      setTimeout(() => loadCommunity(), 800);
+    } else {
+      showAlert("savedShareError", "savedShareSuccess", false, "공유 실패");
+    }
+  };
+  document.getElementById("shareModal").classList.add("open");
+}
+
 // ── 헬퍼 ─────────────────────────────────────────────
 async function apiFetch(method, url, body) {
   const opts = { method, headers: { Authorization: `Bearer ${token}` } };
@@ -76,8 +155,14 @@ function renderPendingPanel() {
         <label>닉네임</label>
         <input id="shareOwner" type="text" placeholder="표시될 닉네임" value="${authName}" />
       </div>
-      <button type="submit" class="btn-primary" id="shareSubmitBtn">커뮤니티에 공유하기 🤝</button>
+      <div class="genre-picker">
+        <label>장르 선택 <span style="color:var(--sub);font-weight:400;">(최대 3개)</span></label>
+        <div class="genre-chips" id="pendingGenreChips"></div>
+      </div>
+      <button type="submit" class="btn-primary" id="shareSubmitBtn" style="margin-top:14px;">커뮤니티에 공유하기 🤝</button>
     </form>`;
+
+  const pendingGenrePicker = buildGenreChips(document.getElementById("pendingGenreChips"), extractGenres(pending.tracks));
 
   document.getElementById("shareForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -85,7 +170,8 @@ function renderPendingPanel() {
     const owner = document.getElementById("shareOwner").value.trim() || authName || "익명";
     if (!name) return showAlert("shareError", "shareSuccess", false, "플레이리스트 이름을 입력해주세요");
     setBtn("shareSubmitBtn", true, "공유하기");
-    const genres = extractGenres(pending.tracks);
+    const selected = pendingGenrePicker.getSelected();
+    const genres = selected.length > 0 ? selected : extractGenres(pending.tracks);
     const { ok } = await apiFetch("POST", "/api/playlists", {
       name, owner, theme: pending.theme || "추천 플레이리스트",
       tracks: pending.tracks.slice(0, 20), genres,
@@ -132,27 +218,9 @@ async function loadSavedPlaylists() {
   }).join("");
 
   list.querySelectorAll(".btn-share-small").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const pl = data.playlists.find((p) => p.id === btn.dataset.id);
-      if (!pl) return;
-      const name = prompt("공유할 이름을 입력하세요:", pl.name);
-      if (!name) return;
-      btn.disabled = true; btn.textContent = "...";
-      const tracks = Array.isArray(pl.tracks) ? pl.tracks : [];
-      const genres = extractGenres(tracks);
-      const { ok } = await apiFetch("POST", "/api/playlists", {
-        name: name.trim() || pl.name, owner: authName || "익명",
-        theme: "내 플레이리스트", tracks, genres,
-        cover_image: pl.cover_image || null,
-        source_playlist_id: pl.id,
-      });
-      if (ok) {
-        showAlert("savedShareError", "savedShareSuccess", true, `"${name}" 공유 완료!`);
-        setTimeout(() => loadCommunity(), 800);
-      } else {
-        showAlert("savedShareError", "savedShareSuccess", false, "공유 실패");
-      }
-      btn.disabled = false; btn.textContent = "공유";
+      if (pl) openShareModal(pl);
     });
   });
 }
@@ -200,12 +268,19 @@ function renderCommunity() {
     }
     const isLiked = likedIds.has(String(pl.id));
     const isOwner = myUsername && pl.ownerUsername === myUsername;
+    const genreTags = (Array.isArray(pl.genres) ? pl.genres : [])
+      .filter(g => GENRE_LABEL[g])
+      .map(g => `<span class="pl-genre-tag">${GENRE_LABEL[g]}</span>`).join("");
     return `
       <div class="pl-card" data-id="${pl.id}">
         <div class="pl-thumb" ${thumbStyle}>${thumbHtml}</div>
         <div class="pl-body">
           <div class="pl-name">${pl.name}</div>
           <div class="pl-owner">@${pl.owner}${isOwner ? " <span style='color:var(--primary);font-size:10px;'>내 글</span>" : ""}</div>
+          <div class="pl-genres">
+            ${genreTags || `<span style="color:var(--sub);font-size:10px;">장르 미설정</span>`}
+            ${isOwner ? `<button class="btn-edit-genre" data-id="${pl.id}" title="장르 편집">✏️</button>` : ""}
+          </div>
           <div class="pl-foot">
             <span class="pl-meta">${tracks.length}곡</span>
             <div style="display:flex;align-items:center;gap:4px;">
@@ -237,10 +312,19 @@ function renderCommunity() {
     });
   });
 
+  // 장르 편집
+  grid.querySelectorAll(".btn-edit-genre").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const pl = communityPlaylists.find((p) => String(p.id) === btn.dataset.id);
+      if (pl) openGenreEditModal(pl);
+    });
+  });
+
   // 카드 클릭 → 모달
   grid.querySelectorAll(".pl-card").forEach((card) => {
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".like-btn")) return;
+      if (e.target.closest(".like-btn") || e.target.closest(".del-btn") || e.target.closest(".btn-edit-genre")) return;
       const pl = communityPlaylists.find((p) => String(p.id) === card.dataset.id);
       if (pl) openModal(pl);
     });
@@ -314,6 +398,37 @@ document.getElementById("modalLikeBtn").addEventListener("click", async () => {
     renderCommunity();
   }
 });
+
+// ── 장르 편집 모달 ────────────────────────────────────
+let genreEditPl = null;
+let genreEditPicker = null;
+
+function openGenreEditModal(pl) {
+  genreEditPl = pl;
+  document.getElementById("shareModalTitle").textContent = "장르 편집";
+  document.getElementById("shareModalName").style.display = "none";
+  document.getElementById("shareModalName").previousElementSibling.style.display = "none";
+  document.getElementById("shareModalConfirm").textContent = "저장";
+  const chipsEl = document.getElementById("shareModalGenreChips");
+  genreEditPicker = buildGenreChips(chipsEl, Array.isArray(pl.genres) ? pl.genres : []);
+  document.getElementById("shareModalConfirm").onclick = async () => {
+    const genres = genreEditPicker?.getSelected() || [];
+    const btn = document.getElementById("shareModalConfirm");
+    btn.disabled = true; btn.textContent = "저장 중...";
+    const { ok, data } = await apiFetch("PUT", `/api/playlists/${pl.id}/genres`, { genres });
+    btn.disabled = false; btn.textContent = "저장";
+    if (ok) {
+      pl.genres = data.genres || genres;
+      const idx = communityPlaylists.findIndex(p => String(p.id) === String(pl.id));
+      if (idx !== -1) communityPlaylists[idx].genres = pl.genres;
+      closeShareModal();
+      renderCommunity();
+    } else {
+      alert("장르 저장에 실패했습니다.");
+    }
+  };
+  document.getElementById("shareModal").classList.add("open");
+}
 
 // ── 장르 필터 ─────────────────────────────────────────
 document.querySelectorAll(".genre-btn").forEach((btn) => {
