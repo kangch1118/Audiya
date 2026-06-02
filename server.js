@@ -2277,32 +2277,23 @@ async function handleApi(req, res) {
   if (pathname === "/api/search" && req.method === "GET") {
     const q = String(requestUrl.searchParams.get("q") || "").trim();
     if (!q) { sendJson(res, 400, { error: "검색어를 입력하세요." }); return true; }
-    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-      sendJson(res, 503, { error: "Spotify 키가 서버에 설정되어 있지 않습니다." }); return true;
-    }
     const cacheKey = q.toLowerCase();
     const cached = searchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
       sendJson(res, 200, { tracks: cached.tracks }); return true;
     }
     try {
-      const spToken = await getSpotifyAccessToken();
-      const endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&market=KR&limit=20`;
-      const spRes = await fetchWithTimeout(endpoint, { headers: { Authorization: `Bearer ${spToken}` } });
-      if (spRes.status === 429) {
-        const retryAfter = parseInt(spRes.headers.get("retry-after") || "30", 10);
-        sendJson(res, 429, { error: "rate_limit", retryAfter });
-        return true;
-      }
-      if (!spRes.ok) throw new Error(`spotify-search-failed:${spRes.status}`);
-      const data = await spRes.json();
-      const items = (data?.tracks?.items || []).map(t => ({
-        title: t.name || "Unknown",
-        artist: (t.artists || []).map(a => a.name).join(", "),
-        source: "spotify",
-        spotifyUrl: t.external_urls?.spotify || "",
-        previewUrl: t.preview_url || "",
-        coverUrl: t.album?.images?.[0]?.url || "",
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=20&country=KR`;
+      const itunesRes = await fetchWithTimeout(url);
+      if (!itunesRes.ok) throw new Error(`itunes-search-failed:${itunesRes.status}`);
+      const data = await itunesRes.json();
+      const items = (data.results || []).map(t => ({
+        title: t.trackName || "Unknown",
+        artist: t.artistName || "Unknown",
+        coverUrl: (t.artworkUrl100 || "").replace("100x100", "300x300"),
+        source: "itunes",
+        spotifyUrl: t.trackViewUrl || "",
+        previewUrl: t.previewUrl || "",
       }));
       searchCache.set(cacheKey, { tracks: items, ts: Date.now() });
       sendJson(res, 200, { tracks: items });

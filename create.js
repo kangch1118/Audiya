@@ -283,29 +283,14 @@ plSelect.addEventListener("change", () => {
 });
 
 // ── Search ────────────────────────────────────────────
-let searchCountdownTimer = null;
-
 async function searchTracks() {
   const q = searchInput.value.trim();
   if (!q) return;
-  if (searchCountdownTimer) return;
   searchBtn.disabled = true;
   searchResults.innerHTML = "<p class='state-msg'>검색 중...</p>";
   try {
-    const res = await fetch("/api/search?q=" + encodeURIComponent(q), {
-      headers: { Authorization: "Bearer " + token }
-    });
+    const res = await fetch("/api/search?q=" + encodeURIComponent(q));
     const data = await res.json();
-    if (res.status === 429) {
-      const secs = Math.min(data.retryAfter || 30, 60);
-      if ((data.retryAfter || 30) > 60) {
-        searchResults.innerHTML = "<p class='state-msg'>Spotify API 일시 차단됨 — 수분 후 다시 시도해 주세요</p>";
-        searchBtn.disabled = false;
-        return;
-      }
-      startSearchCountdown(secs, q);
-      return;
-    }
     if (!res.ok) {
       searchResults.innerHTML = `<p class='state-msg'>${escHtml(data.error || "검색 실패")}</p>`;
       return;
@@ -320,28 +305,8 @@ async function searchTracks() {
   } catch (e) {
     searchResults.innerHTML = `<p class='state-msg'>검색 중 오류: ${escHtml(e.message)}</p>`;
   } finally {
-    searchBtn.disabled = !!searchCountdownTimer;
+    searchBtn.disabled = false;
   }
-}
-
-function startSearchCountdown(secs, q) {
-  let remaining = secs;
-  searchBtn.disabled = true;
-  const update = () => {
-    searchResults.innerHTML = `<p class='state-msg'>Spotify 한도 초과 — ${remaining}초 후 자동 재검색...</p>`;
-  };
-  update();
-  searchCountdownTimer = setInterval(() => {
-    remaining--;
-    if (remaining <= 0) {
-      clearInterval(searchCountdownTimer);
-      searchCountdownTimer = null;
-      searchInput.value = q;
-      searchTracks();
-    } else {
-      update();
-    }
-  }, 1000);
 }
 
 searchBtn.addEventListener("click", searchTracks);
