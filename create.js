@@ -283,9 +283,12 @@ plSelect.addEventListener("change", () => {
 });
 
 // ── Search ────────────────────────────────────────────
+let searchCountdownTimer = null;
+
 async function searchTracks() {
   const q = searchInput.value.trim();
   if (!q) return;
+  if (searchCountdownTimer) return;
   searchBtn.disabled = true;
   searchResults.innerHTML = "<p class='state-msg'>검색 중...</p>";
   try {
@@ -293,11 +296,13 @@ async function searchTracks() {
       headers: { Authorization: "Bearer " + token }
     });
     const data = await res.json();
+    if (res.status === 429) {
+      const secs = data.retryAfter || 30;
+      startSearchCountdown(secs, q);
+      return;
+    }
     if (!res.ok) {
-      const msg = res.status === 429
-        ? "Spotify 요청 한도 초과 — 잠시 후 다시 시도해 주세요"
-        : (data.error || "검색 실패");
-      searchResults.innerHTML = `<p class='state-msg'>${escHtml(msg)}</p>`;
+      searchResults.innerHTML = `<p class='state-msg'>${escHtml(data.error || "검색 실패")}</p>`;
       return;
     }
     const tracks = data.tracks || [];
@@ -310,8 +315,28 @@ async function searchTracks() {
   } catch (e) {
     searchResults.innerHTML = `<p class='state-msg'>검색 중 오류: ${escHtml(e.message)}</p>`;
   } finally {
-    searchBtn.disabled = false;
+    searchBtn.disabled = !!searchCountdownTimer;
   }
+}
+
+function startSearchCountdown(secs, q) {
+  let remaining = secs;
+  searchBtn.disabled = true;
+  const update = () => {
+    searchResults.innerHTML = `<p class='state-msg'>Spotify 한도 초과 — ${remaining}초 후 자동 재검색...</p>`;
+  };
+  update();
+  searchCountdownTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(searchCountdownTimer);
+      searchCountdownTimer = null;
+      searchInput.value = q;
+      searchTracks();
+    } else {
+      update();
+    }
+  }, 1000);
 }
 
 searchBtn.addEventListener("click", searchTracks);

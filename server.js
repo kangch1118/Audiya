@@ -2285,24 +2285,31 @@ async function handleApi(req, res) {
     if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
       sendJson(res, 200, { tracks: cached.tracks }); return true;
     }
-    let lastError;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1500));
-        const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
-        searchCache.set(cacheKey, { tracks: results, ts: Date.now() });
-        sendJson(res, 200, { tracks: results });
+    try {
+      const spToken = await getSpotifyAccessToken();
+      const endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&market=KR&limit=20`;
+      const spRes = await fetchWithTimeout(endpoint, { headers: { Authorization: `Bearer ${spToken}` } });
+      if (spRes.status === 429) {
+        const retryAfter = parseInt(spRes.headers.get("retry-after") || "30", 10);
+        sendJson(res, 429, { error: "rate_limit", retryAfter });
         return true;
-      } catch (e) {
-        lastError = e;
-        if (!String(e?.message).includes("429")) break;
       }
+      if (!spRes.ok) throw new Error(`spotify-search-failed:${spRes.status}`);
+      const data = await spRes.json();
+      const items = (data?.tracks?.items || []).map(t => ({
+        title: t.name || "Unknown",
+        artist: (t.artists || []).map(a => a.name).join(", "),
+        source: "spotify",
+        spotifyUrl: t.external_urls?.spotify || "",
+        previewUrl: t.preview_url || "",
+        coverUrl: t.album?.images?.[0]?.url || "",
+      }));
+      searchCache.set(cacheKey, { tracks: items, ts: Date.now() });
+      sendJson(res, 200, { tracks: items });
+    } catch (e) {
+      console.error("[/api/search]", e?.message || e);
+      sendJson(res, 500, { error: "검색 실패: " + (e?.message || "알 수 없는 오류") });
     }
-    console.error("[/api/search]", lastError?.message || lastError);
-    const is429 = String(lastError?.message).includes("429");
-    sendJson(res, is429 ? 429 : 500, {
-      error: is429 ? "Spotify 요청 한도 초과 — 잠시 후 다시 시도해 주세요" : "검색 실패: " + (lastError?.message || "알 수 없는 오류")
-    });
     return true;
   }
 
