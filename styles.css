@@ -465,7 +465,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* ── 선택 칩 ─────────────────────────────────────── */
 .option-group { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
-.option-group[data-name="season"] { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.option-group[data-name="season"] { grid-template-columns: repeat(5,minmax(0,1fr)); }
 .option-group[data-name="origin"] { grid-template-columns: repeat(4,minmax(0,1fr)); }
 
 .choice-btn {

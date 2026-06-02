@@ -1234,7 +1234,7 @@ async function fetchSpotifyCandidates(context, requestedCount) {
       genre: track.genre || context.genres[0] || "indie",
       color: context.color === "all" ? "green" : context.color,
       season: context.season === "all" ? "spring" : context.season,
-      origin: detected || (context.origin === "all" ? "global" : context.origin),
+      origin: detected || "global",
       source: "spotify",
       coverUrl: track.coverUrl || "",
       previewUrl: track.previewUrl || "",
@@ -1278,7 +1278,7 @@ async function fetchYouTubeCandidates(context, requestedCount) {
       genre: track.genre || context.genres[0] || "indie",
       color: context.color === "all" ? "green" : context.color,
       season: context.season === "all" ? "spring" : context.season,
-      origin: detected || (context.origin === "all" ? "global" : context.origin),
+      origin: detected || "global",
       source: "youtube",
       coverUrl: track.coverUrl || "",
       previewUrl: "",
@@ -1578,7 +1578,11 @@ function takeWithBackfill(poolRaw, context, requestedCount) {
     }
   }
 
-  const fullSorted = sortAndUniqueByScore(poolRaw, context);
+  // origin이 지정된 경우 최후 fallback도 origin 필터 유지
+  const finalPool = context.origin === "all"
+    ? poolRaw
+    : poolRaw.filter((t) => t.origin === context.origin);
+  const fullSorted = sortAndUniqueByScore(finalPool, context);
   fullSorted.forEach((track) => {
     if (selected.length >= requestedCount) return;
     const key = `${track.title}::${track.artist}`.toLowerCase();
