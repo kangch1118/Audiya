@@ -1827,12 +1827,11 @@ async function hydrateSharedPlaylists() {
     shareApiOnline = true;
     const top3 = items.slice(0, 3);
     renderSharedPlaylists(top3);
-    shareHint.textContent = "DB 기반 공유 목록이 연결되었습니다.";
+    if (shareHint) shareHint.textContent = "DB 기반 공유 목록이 연결되었습니다.";
   } catch (_error) {
     shareApiOnline = false;
     renderSharedPlaylists([]);
-    shareHint.textContent =
-      "서버 미연결 상태입니다. (node server.js 실행 필요)";
+    if (shareHint) shareHint.textContent = "서버 미연결 상태입니다. (node server.js 실행 필요)";
   }
 }
 
@@ -1864,13 +1863,12 @@ function buildSharePayload(name, owner) {
 
 async function handleShareCurrentPlaylist() {
   if (currentRecommendations.length === 0) {
-    shareHint.textContent = "먼저 추천을 생성한 뒤 공유할 수 있습니다.";
+    if (shareHint) shareHint.textContent = "먼저 추천을 생성한 뒤 공유할 수 있습니다.";
     return;
   }
 
   if (!shareApiOnline) {
-    shareHint.textContent =
-      "서버가 연결되지 않아 저장할 수 없습니다. node server.js로 서버를 실행해주세요.";
+    if (shareHint) shareHint.textContent = "서버가 연결되지 않아 저장할 수 없습니다. node server.js로 서버를 실행해주세요.";
     return;
   }
 
@@ -1880,12 +1878,11 @@ async function handleShareCurrentPlaylist() {
   try {
     const payload = buildSharePayload();
     await saveSharedPlaylist(payload);
-    shareHint.textContent = `공유 완료: ${payload.name}`;
+    if (shareHint) shareHint.textContent = `공유 완료: ${payload.name}`;
     shareNameInput.value = "";
     await hydrateSharedPlaylists();
   } catch (_error) {
-    shareHint.textContent =
-      "공유 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+    if (shareHint) shareHint.textContent = "공유 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
   } finally {
     shareBtn.disabled = false;
     shareBtn.textContent = "현재 추천 공유하기 🤝";
