@@ -63,7 +63,9 @@ function openShareModal(pl) {
   document.getElementById("shareModalName").value = pl.name;
   document.getElementById("shareModalConfirm").textContent = "공유하기";
   const chipsEl = document.getElementById("shareModalGenreChips");
-  shareModalGenrePicker = buildGenreChips(chipsEl, []);
+  // 저장된 장르 자동 반영
+  const savedGenres = pl.preferences?.genres || [];
+  shareModalGenrePicker = buildGenreChips(chipsEl, savedGenres);
   document.getElementById("shareModalConfirm").onclick = async () => {
     const name = document.getElementById("shareModalName").value.trim();
     if (!name) return;
@@ -71,10 +73,12 @@ function openShareModal(pl) {
     const btn = document.getElementById("shareModalConfirm");
     btn.disabled = true; btn.textContent = "공유 중...";
     const tracks = Array.isArray(pl.tracks) ? pl.tracks : [];
+    // 저장된 커버 자동 반영
+    const coverImage = pl.cover_image || pl.preferences?.cover_image || null;
     const { ok } = await apiFetch("POST", "/api/playlists", {
       name, owner: authName || "익명", theme: "내 플레이리스트", tracks,
       genres: genres.length > 0 ? genres : extractGenres(tracks),
-      cover_image: pl.cover_image || null,
+      cover_image: coverImage,
       source_playlist_id: pl.id,
     });
     btn.disabled = false; btn.textContent = "공유하기";
@@ -279,7 +283,6 @@ function renderCommunity() {
           <div class="pl-owner">@${pl.owner}${isOwner ? " <span style='color:var(--primary);font-size:10px;'>내 글</span>" : ""}</div>
           <div class="pl-genres">
             ${genreTags || `<span style="color:var(--sub);font-size:10px;">장르 미설정</span>`}
-            ${isOwner ? `<button class="btn-edit-genre" data-id="${pl.id}" title="장르 편집">✏️</button>` : ""}
           </div>
           <div class="pl-foot">
             <span class="pl-meta">${tracks.length}곡</span>
