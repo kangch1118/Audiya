@@ -71,9 +71,12 @@
       .col-card {
         background:var(--surface); border:1px solid var(--border);
         border-radius:18px; padding:0; box-shadow:var(--card-shadow);
-        backdrop-filter:blur(12px); overflow:hidden;
+        backdrop-filter:blur(12px); overflow:auto;
         display:flex; flex-direction:column;
       }
+      #buildList { max-height:320px; overflow-y:auto; }
+      #buildList::-webkit-scrollbar { width:4px; }
+      #buildList::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
       .card-head {
         padding:16px 18px 14px;
         border-bottom:1px solid var(--divider);
@@ -109,7 +112,7 @@
         border:1.5px solid transparent;
         user-select:none;
       }
-      .track-row:hover { background:var(--chip-bg); border-color:var(--chip-border); }
+      .track-row:hover { background:rgba(99,102,241,0.1); border-color:var(--input-border); }
       .track-row.dragging { opacity:0.45; }
       .track-cover {
         width:36px; height:36px; border-radius:7px;
@@ -158,7 +161,7 @@
         transition:background 0.15s; cursor:grab;
         user-select:none; position:relative;
       }
-      .built-track:hover { background:var(--chip-bg); border-color:var(--chip-border); }
+      .built-track:hover { background:rgba(99,102,241,0.1); border-color:var(--input-border); }
       .built-track.drag-over-top { border-top:2px solid var(--primary); }
       .built-track.drag-over-bottom { border-bottom:2px solid var(--primary); }
       .drag-handle { color:var(--sub); font-size:13px; cursor:grab; flex-shrink:0; line-height:1; padding:2px; }
