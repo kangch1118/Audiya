@@ -284,7 +284,7 @@ function renderCommunity() {
           <div class="pl-foot">
             <span class="pl-meta">${tracks.length}곡</span>
             <div style="display:flex;align-items:center;gap:4px;">
-              ${isOwner ? `<button class="btn-edit-cover" data-id="${pl.id}" title="표지 변경">🖼</button>` : ""}
+              ${isOwner ? `<button class="btn-edit-genre" data-id="${pl.id}" title="편집">✏️</button>` : ""}
               ${isOwner ? `<button class="del-btn" data-id="${pl.id}" title="공유 취소">🗑</button>` : ""}
               <button class="like-btn" data-id="${pl.id}" title="${isLiked ? "좋아요 취소" : "좋아요"}">${isLiked ? "💜" : "🤍"} ${pl.likes || 0}</button>
             </div>
@@ -313,28 +313,19 @@ function renderCommunity() {
     });
   });
 
-  // 장르 편집
+  // 편집 버튼 (장르 + 표지 통합)
   grid.querySelectorAll(".btn-edit-genre").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const pl = communityPlaylists.find((p) => String(p.id) === btn.dataset.id);
-      if (pl) openGenreEditModal(pl);
+      if (pl) openEditModal(pl, "genre");
     });
   });
 
-  // 커버 변경
-  grid.querySelectorAll(".btn-edit-cover").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const pl = communityPlaylists.find((p) => String(p.id) === btn.dataset.id);
-      if (pl) openCoverModal(pl);
-    });
-  });
-
-  // 카드 클릭 → 모달
+  // 카드 클릭 → 트랙 모달
   grid.querySelectorAll(".pl-card").forEach((card) => {
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".like-btn") || e.target.closest(".del-btn") || e.target.closest(".btn-edit-genre") || e.target.closest(".btn-edit-cover")) return;
+      if (e.target.closest(".like-btn") || e.target.closest(".del-btn") || e.target.closest(".btn-edit-genre")) return;
       const pl = communityPlaylists.find((p) => String(p.id) === card.dataset.id);
       if (pl) openModal(pl);
     });
@@ -409,52 +400,116 @@ document.getElementById("modalLikeBtn").addEventListener("click", async () => {
   }
 });
 
-// ── 장르 편집 모달 ────────────────────────────────────
-let genreEditPl = null;
-let genreEditPicker = null;
-
-function openGenreEditModal(pl) {
-  genreEditPl = pl;
-  document.getElementById("shareModalTitle").textContent = "장르 편집";
-  document.getElementById("shareModalName").style.display = "none";
-  document.getElementById("shareModalName").previousElementSibling.style.display = "none";
-  document.getElementById("shareModalConfirm").textContent = "저장";
-  const chipsEl = document.getElementById("shareModalGenreChips");
-  genreEditPicker = buildGenreChips(chipsEl, Array.isArray(pl.genres) ? pl.genres : []);
-  document.getElementById("shareModalConfirm").onclick = async () => {
-    const genres = genreEditPicker?.getSelected() || [];
-    const btn = document.getElementById("shareModalConfirm");
-    btn.disabled = true; btn.textContent = "저장 중...";
-    const { ok, data } = await apiFetch("PUT", `/api/playlists/${pl.id}/genres`, { genres });
-    btn.disabled = false; btn.textContent = "저장";
-    if (ok) {
-      pl.genres = data.genres || genres;
-      const idx = communityPlaylists.findIndex(p => String(p.id) === String(pl.id));
-      if (idx !== -1) communityPlaylists[idx].genres = pl.genres;
-      closeShareModal();
-      renderCommunity();
-    } else {
-      alert("장르 저장에 실패했습니다.");
-    }
-  };
-  document.getElementById("shareModal").classList.add("open");
-}
-
-// ── 커버 변경 모달 ────────────────────────────────────
+// ── 통합 편집 모달 (장르 + 표지) ─────────────────────
 const CM_PALETTES = [
   { label: "바이올렛", value: "linear-gradient(135deg,#6366f1,#8b5cf6)" },
-  { label: "선셋",    value: "linear-gradient(135deg,#f97316,#ec4899)" },
-  { label: "오션",    value: "linear-gradient(135deg,#0ea5e9,#6366f1)" },
-  { label: "포레스트",value: "linear-gradient(135deg,#22c55e,#0ea5e9)" },
-  { label: "미드나잇",value: "linear-gradient(135deg,#1e1b4b,#312e81)" },
-  { label: "로즈",    value: "linear-gradient(135deg,#f43f5e,#ec4899)" },
-  { label: "골드",    value: "linear-gradient(135deg,#f59e0b,#f97316)" },
-  { label: "모노",    value: "linear-gradient(135deg,#374151,#6b7280)" },
+  { label: "선셋",     value: "linear-gradient(135deg,#f97316,#ec4899)" },
+  { label: "오션",     value: "linear-gradient(135deg,#0ea5e9,#6366f1)" },
+  { label: "포레스트", value: "linear-gradient(135deg,#22c55e,#0ea5e9)" },
+  { label: "미드나잇", value: "linear-gradient(135deg,#1e1b4b,#312e81)" },
+  { label: "로즈",     value: "linear-gradient(135deg,#f43f5e,#ec4899)" },
+  { label: "골드",     value: "linear-gradient(135deg,#f59e0b,#f97316)" },
+  { label: "모노",     value: "linear-gradient(135deg,#374151,#6b7280)" },
 ];
 
-let coverModalPl = null;
+let editModalPl = null;
+let editGenrePicker = null;
 let cmSelectedCover = null;
-let cmActiveTab = "album";
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.remove("open");
+  editModalPl = null; cmSelectedCover = null;
+}
+
+function activateEditTab(tab) {
+  document.querySelectorAll("[data-etab]").forEach(t => t.classList.toggle("active", t.dataset.etab === tab));
+  document.getElementById("etabGenre").style.display = tab === "genre" ? "" : "none";
+  document.getElementById("etabCover").style.display = tab === "cover" ? "flex" : "none";
+}
+
+function cmActivateTab(name) {
+  document.querySelectorAll("[data-ctab]").forEach(t => t.classList.toggle("active", t.dataset.ctab === name));
+  ["album","color","upload"].forEach(n => {
+    const el = document.getElementById("cmTab" + n.charAt(0).toUpperCase() + n.slice(1));
+    if (el) el.style.display = n === name ? "" : "none";
+  });
+  if (name !== "upload") cmSelectedCover = null;
+}
+
+function openEditModal(pl, initialTab = "genre") {
+  editModalPl = pl;
+  cmSelectedCover = null;
+
+  // 장르 탭 초기화
+  editGenrePicker = buildGenreChips(document.getElementById("editGenreChips"), Array.isArray(pl.genres) ? pl.genres : []);
+
+  // 커버 앨범 탭
+  const albumEl = document.getElementById("cmTabAlbum");
+  const tracks = (pl.tracks || []).filter(t => t.coverUrl);
+  const seen = new Set();
+  const unique = tracks.filter(t => { if (seen.has(t.coverUrl)) return false; seen.add(t.coverUrl); return true; });
+  albumEl.innerHTML = unique.length === 0
+    ? '<p style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0;">앨범 표지가 없습니다.</p>'
+    : `<div class="cover-album-grid">${unique.map(t =>
+        `<div class="cover-album-item" data-url="${t.coverUrl}"><img src="${t.coverUrl}" alt="" loading="lazy" /></div>`
+      ).join("")}</div>`;
+  albumEl.querySelectorAll(".cover-album-item").forEach(item => {
+    item.addEventListener("click", () => {
+      albumEl.querySelectorAll(".cover-album-item").forEach(i => i.classList.remove("selected"));
+      item.classList.add("selected");
+      cmSelectedCover = { type: "album", value: item.dataset.url };
+    });
+  });
+
+  // 커버 팔레트 탭
+  const colorEl = document.getElementById("cmTabColor");
+  colorEl.innerHTML = `<div class="cover-palette-grid">${CM_PALETTES.map(p =>
+    `<div class="cover-palette-item" data-gradient="${p.value}" title="${p.label}" style="background:${p.value};"></div>`
+  ).join("")}</div>`;
+  colorEl.querySelectorAll(".cover-palette-item").forEach(item => {
+    item.addEventListener("click", () => {
+      colorEl.querySelectorAll(".cover-palette-item").forEach(i => i.classList.remove("selected"));
+      item.classList.add("selected");
+      cmSelectedCover = { type: "color", value: item.dataset.gradient };
+    });
+  });
+
+  // 업로드 탭 리셋
+  document.getElementById("cmUploadZone").textContent = "📁 클릭해서 이미지 선택";
+  document.getElementById("cmUploadPreview").style.display = "none";
+  document.getElementById("cmUploadPreview").src = "";
+  cmActivateTab("album");
+
+  activateEditTab(initialTab);
+  document.getElementById("editModal").classList.add("open");
+}
+
+// 메인 탭 전환
+document.querySelectorAll("[data-etab]").forEach(tab => {
+  tab.addEventListener("click", () => activateEditTab(tab.dataset.etab));
+});
+
+// 커버 서브탭 전환
+document.querySelectorAll("[data-ctab]").forEach(tab => {
+  tab.addEventListener("click", () => cmActivateTab(tab.dataset.ctab));
+});
+
+// 업로드
+document.getElementById("cmUploadZone").addEventListener("click", () => {
+  document.getElementById("cmFileInput").click();
+});
+document.getElementById("cmFileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImageCm(file, 400);
+    cmSelectedCover = { type: "upload", value: dataUrl };
+    const preview = document.getElementById("cmUploadPreview");
+    preview.src = dataUrl; preview.style.display = "block";
+    document.getElementById("cmUploadZone").textContent = "✅ " + file.name;
+  } catch (_e) { alert("이미지 처리 중 오류가 발생했습니다."); }
+  e.target.value = "";
+});
 
 function resizeImageCm(file, maxPx) {
   return new Promise((resolve, reject) => {
@@ -477,105 +532,42 @@ function resizeImageCm(file, maxPx) {
   });
 }
 
-function cmActivateTab(name) {
-  cmActiveTab = name;
-  document.querySelectorAll(".cover-modal-tab").forEach(t => t.classList.toggle("active", t.dataset.ctab === name));
-  ["album","color","upload"].forEach(n => {
-    const el = document.getElementById("cmTab" + n.charAt(0).toUpperCase() + n.slice(1));
-    if (el) el.style.display = n === name ? "" : "none";
-  });
-  if (name !== "upload") { cmSelectedCover = null; }
-}
-
-function openCoverModal(pl) {
-  coverModalPl = pl;
-  cmSelectedCover = null;
-
-  // 앨범 탭
-  const albumEl = document.getElementById("cmTabAlbum");
-  const tracks = (pl.tracks || []).filter(t => t.coverUrl);
-  const seen = new Set();
-  const unique = tracks.filter(t => { if (seen.has(t.coverUrl)) return false; seen.add(t.coverUrl); return true; });
-  if (unique.length === 0) {
-    albumEl.innerHTML = '<p style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0;">앨범 표지가 없습니다.</p>';
-  } else {
-    albumEl.innerHTML = `<div class="cover-album-grid">${unique.map(t =>
-      `<div class="cover-album-item" data-url="${t.coverUrl}"><img src="${t.coverUrl}" alt="${t.title}" loading="lazy" /></div>`
-    ).join("")}</div>`;
-    albumEl.querySelectorAll(".cover-album-item").forEach(item => {
-      item.addEventListener("click", () => {
-        albumEl.querySelectorAll(".cover-album-item").forEach(i => i.classList.remove("selected"));
-        item.classList.add("selected");
-        cmSelectedCover = { type: "album", value: item.dataset.url };
-      });
-    });
-  }
-
-  // 팔레트 탭
-  const colorEl = document.getElementById("cmTabColor");
-  colorEl.innerHTML = `<div class="cover-palette-grid">${CM_PALETTES.map(p =>
-    `<div class="cover-palette-item" data-gradient="${p.value}" title="${p.label}" style="background:${p.value};"></div>`
-  ).join("")}</div>`;
-  colorEl.querySelectorAll(".cover-palette-item").forEach(item => {
-    item.addEventListener("click", () => {
-      colorEl.querySelectorAll(".cover-palette-item").forEach(i => i.classList.remove("selected"));
-      item.classList.add("selected");
-      cmSelectedCover = { type: "color", value: item.dataset.gradient };
-    });
-  });
-
-  // 업로드 탭 리셋
-  document.getElementById("cmUploadZone").textContent = "📁 클릭해서 이미지 선택";
-  document.getElementById("cmUploadPreview").style.display = "none";
-  document.getElementById("cmUploadPreview").src = "";
-
-  cmActivateTab("album");
-  document.getElementById("coverModal").classList.add("open");
-}
-
-document.querySelectorAll(".cover-modal-tab").forEach(tab => {
-  tab.addEventListener("click", () => cmActivateTab(tab.dataset.ctab));
+// 장르 저장
+document.getElementById("editGenreSaveBtn").addEventListener("click", async () => {
+  if (!editModalPl) return;
+  const genres = editGenrePicker?.getSelected() || [];
+  const btn = document.getElementById("editGenreSaveBtn");
+  btn.disabled = true; btn.textContent = "저장 중...";
+  const { ok, data } = await apiFetch("PUT", `/api/playlists/${editModalPl.id}/genres`, { genres });
+  btn.disabled = false; btn.textContent = "저장";
+  if (ok) {
+    editModalPl.genres = data.genres || genres;
+    const idx = communityPlaylists.findIndex(p => String(p.id) === String(editModalPl.id));
+    if (idx !== -1) communityPlaylists[idx].genres = editModalPl.genres;
+    closeEditModal();
+    renderCommunity();
+  } else { alert("장르 저장에 실패했습니다."); }
 });
 
-document.getElementById("cmUploadZone").addEventListener("click", () => {
-  document.getElementById("cmFileInput").click();
-});
-
-document.getElementById("cmFileInput").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    const dataUrl = await resizeImageCm(file, 400);
-    cmSelectedCover = { type: "upload", value: dataUrl };
-    const preview = document.getElementById("cmUploadPreview");
-    preview.src = dataUrl; preview.style.display = "block";
-    document.getElementById("cmUploadZone").textContent = "✅ " + file.name;
-  } catch (_e) { alert("이미지 처리 중 오류가 발생했습니다."); }
-  e.target.value = "";
-});
-
+// 표지 적용
 document.getElementById("cmApplyBtn").addEventListener("click", async () => {
   if (!cmSelectedCover) { alert("표지를 선택해주세요."); return; }
   const btn = document.getElementById("cmApplyBtn");
   btn.disabled = true; btn.textContent = "저장 중...";
-  const { ok } = await apiFetch("PUT", `/api/playlists/${coverModalPl.id}/cover`, { cover_image: cmSelectedCover });
+  const { ok } = await apiFetch("PUT", `/api/playlists/${editModalPl.id}/cover`, { cover_image: cmSelectedCover });
   btn.disabled = false; btn.textContent = "적용하기";
   if (ok) {
-    coverModalPl.coverImage = cmSelectedCover;
-    const idx = communityPlaylists.findIndex(p => String(p.id) === String(coverModalPl.id));
+    editModalPl.coverImage = cmSelectedCover;
+    const idx = communityPlaylists.findIndex(p => String(p.id) === String(editModalPl.id));
     if (idx !== -1) communityPlaylists[idx].coverImage = cmSelectedCover;
-    document.getElementById("coverModal").classList.remove("open");
+    closeEditModal();
     renderCommunity();
-  } else {
-    alert("표지 변경에 실패했습니다.");
-  }
+  } else { alert("표지 변경에 실패했습니다."); }
 });
 
-document.getElementById("coverModalClose").addEventListener("click", () => {
-  document.getElementById("coverModal").classList.remove("open");
-});
-document.getElementById("coverModal").addEventListener("click", (e) => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove("open");
+document.getElementById("editModalClose").addEventListener("click", closeEditModal);
+document.getElementById("editModal").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeEditModal();
 });
 
 // ── 장르 필터 ─────────────────────────────────────────
