@@ -2273,6 +2273,19 @@ async function handleApi(req, res) {
     return true;
   }
 
+  if (pathname === "/api/search" && req.method === "GET") {
+    const q = String(requestUrl.searchParams.get("q") || "").trim();
+    if (!q) { sendJson(res, 400, { error: "검색어를 입력하세요." }); return true; }
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) { sendJson(res, 503, { error: "Spotify 미설정" }); return true; }
+    try {
+      const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
+      sendJson(res, 200, { tracks: results });
+    } catch (_e) {
+      sendJson(res, 500, { error: "검색 실패" });
+    }
+    return true;
+  }
+
   if (pathname === "/api/spotify/cover" && req.method === "GET") {
     const title = requestUrl.searchParams.get("title") || "";
     const artist = requestUrl.searchParams.get("artist") || "";

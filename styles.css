@@ -449,6 +449,14 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   font-weight: 700; font-size: 13px; cursor: pointer;
   box-shadow: 0 4px 16px rgba(99,102,241,0.3);
 }
+.create-pl-btn {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 10px 16px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; color: var(--muted); font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: all 0.2s; box-sizing: border-box;
+}
+.create-pl-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--chip-bg); }
 
 /* ── 리플 효과 ───────────────────────────────────── */
 @keyframes ripple {
