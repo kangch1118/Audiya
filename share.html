@@ -191,6 +191,29 @@
       .pl-genre-tag { font-size:10px; font-weight:600; color:var(--chip-text); background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:10px; padding:2px 7px; }
       .btn-edit-genre { background:none; border:none; box-shadow:none; margin:0; font-size:11px; cursor:pointer; padding:2px 5px; color:var(--sub); transition:color 0.2s; border-radius:4px; line-height:1; }
       .btn-edit-genre:hover { color:var(--primary); background:var(--chip-bg); transform:none; }
+      .btn-edit-cover { background:none; border:none; box-shadow:none; margin:0; font-size:11px; cursor:pointer; padding:2px 5px; color:var(--sub); transition:color 0.2s; border-radius:4px; line-height:1; }
+      .btn-edit-cover:hover { color:var(--primary); background:var(--chip-bg); transform:none; }
+
+      /* 커버 변경 모달 */
+      .cover-modal-tabs { display:flex; border-bottom:1px solid var(--divider); }
+      .cover-modal-tab { flex:1; padding:11px 0; background:none; border:none; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:inherit; transition:all 0.2s; box-shadow:none; margin:0; }
+      .cover-modal-tab.active { color:var(--primary); border-color:var(--primary); font-weight:700; }
+      .cover-modal-body { overflow-y:auto; flex:1; padding:16px 20px; }
+      .cover-album-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+      .cover-album-item { aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2.5px solid transparent; transition:border-color 0.15s,transform 0.15s; background:var(--input-bg); }
+      .cover-album-item:hover { transform:scale(1.04); }
+      .cover-album-item.selected { border-color:var(--primary); }
+      .cover-album-item img { width:100%; height:100%; object-fit:cover; display:block; }
+      .cover-palette-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+      .cover-palette-item { aspect-ratio:1; border-radius:10px; cursor:pointer; border:2.5px solid transparent; transition:border-color 0.15s,transform 0.15s; }
+      .cover-palette-item:hover { transform:scale(1.06); }
+      .cover-palette-item.selected { border-color:#fff; box-shadow:0 0 0 2px var(--primary); }
+      .cover-upload-zone { border:2px dashed var(--input-border); border-radius:12px; padding:28px 16px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; color:var(--muted); font-size:13px; }
+      .cover-upload-zone:hover { border-color:var(--primary); background:rgba(99,102,241,0.04); }
+      .cover-upload-preview { width:100%; max-height:160px; object-fit:cover; border-radius:10px; margin-top:12px; display:none; }
+      .cover-apply-btn { width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity 0.2s; }
+      .cover-apply-btn:hover { opacity:0.9; }
+      .cover-apply-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
       /* 리플 */
       @keyframes ripple { 0%{transform:scale(0);opacity:0.55} 100%{transform:scale(2.5);opacity:0} }
@@ -292,6 +315,33 @@
         <div style="padding:0 20px 16px;">
           <button class="btn-primary" id="shareModalConfirm" style="width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:700;border:none;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;cursor:pointer;font-family:inherit;transition:opacity 0.2s;">공유하기</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 커버 변경 모달 -->
+    <div class="modal-overlay" id="coverModal">
+      <div class="modal-box" style="max-width:420px;">
+        <div class="modal-head">
+          <h3>표지 변경</h3>
+          <button class="modal-close" id="coverModalClose">✕</button>
+        </div>
+        <div class="cover-modal-tabs">
+          <button class="cover-modal-tab active" data-ctab="album">앨범 표지</button>
+          <button class="cover-modal-tab" data-ctab="color">색상 팔레트</button>
+          <button class="cover-modal-tab" data-ctab="upload">사진 업로드</button>
+        </div>
+        <div class="cover-modal-body">
+          <div id="cmTabAlbum"></div>
+          <div id="cmTabColor" style="display:none;"></div>
+          <div id="cmTabUpload" style="display:none;">
+            <div class="cover-upload-zone" id="cmUploadZone">📁 클릭해서 이미지 선택</div>
+            <img class="cover-upload-preview" id="cmUploadPreview" alt="미리보기" />
+          </div>
+        </div>
+        <div style="padding:0 20px 16px;">
+          <button class="cover-apply-btn" id="cmApplyBtn">적용하기</button>
+        </div>
+        <input type="file" id="cmFileInput" accept="image/*" style="display:none;" />
       </div>
     </div>
 
