@@ -283,52 +283,29 @@ plSelect.addEventListener("change", () => {
 });
 
 // ── Search ────────────────────────────────────────────
-let spotifyToken = null;
-let spotifyTokenExpiry = 0;
-
-async function getSpotifyToken() {
-  if (spotifyToken && Date.now() < spotifyTokenExpiry) return spotifyToken;
-  const res = await fetch("/api/spotify/token");
-  if (!res.ok) throw new Error("토큰 발급 실패");
-  const data = await res.json();
-  spotifyToken = data.token;
-  spotifyTokenExpiry = Date.now() + 55 * 60 * 1000; // 55분 캐시
-  return spotifyToken;
-}
-
 async function searchTracks() {
   const q = searchInput.value.trim();
   if (!q) return;
   searchBtn.disabled = true;
   searchResults.innerHTML = "<p class='state-msg'>검색 중...</p>";
   try {
-    const token = await getSpotifyToken();
-    const res = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&market=KR&limit=20`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) throw new Error(`Spotify ${res.status}`);
+    const res = await fetch("/api/search?q=" + encodeURIComponent(q), {
+      headers: { Authorization: "Bearer " + token }
+    });
     const data = await res.json();
-    const items = data?.tracks?.items || [];
+    if (!res.ok) {
+      searchResults.innerHTML = `<p class='state-msg'>${escHtml(data.error || "검색 실패")}</p>`;
+      return;
+    }
+    const tracks = data.tracks || [];
     searchResults.innerHTML = "";
-    if (!items.length) {
+    if (!tracks.length) {
       searchResults.innerHTML = "<p class='state-msg'>결과가 없습니다</p>";
       return;
     }
-    items.forEach(item => {
-      const track = {
-        title: item.name,
-        artist: item.artists.map(a => a.name).join(", "),
-        coverUrl: item.album?.images?.[0]?.url || "",
-        source: "spotify",
-        spotifyUrl: item.external_urls?.spotify || "",
-        previewUrl: item.preview_url || "",
-        genre: "",
-      };
-      renderSourceTrack(track, searchResults);
-    });
+    tracks.forEach(t => renderSourceTrack(t, searchResults));
   } catch (e) {
-    searchResults.innerHTML = `<p class='state-msg'>검색 실패: ${escHtml(e.message)}</p>`;
+    searchResults.innerHTML = `<p class='state-msg'>검색 중 오류: ${escHtml(e.message)}</p>`;
   } finally {
     searchBtn.disabled = false;
   }
@@ -487,6 +464,7 @@ saveBtn.addEventListener("click", async () => {
   const name = plNameInput.value.trim();
   if (!name) { showToast("플레이리스트 이름을 입력해 주세요"); plNameInput.focus(); return; }
   if (!builtTracks.length) { showToast("곡을 1개 이상 추가해 주세요"); return; }
+  if (selectedGenres.size === 0) { showToast("장르를 1개 이상 선택해 주세요"); return; }
 
   saveBtn.disabled = true;
   saveBtn.textContent = "저장 중...";

@@ -2273,6 +2273,22 @@ async function handleApi(req, res) {
     return true;
   }
 
+  if (pathname === "/api/search" && req.method === "GET") {
+    const q = String(requestUrl.searchParams.get("q") || "").trim();
+    if (!q) { sendJson(res, 400, { error: "검색어를 입력하세요." }); return true; }
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      sendJson(res, 503, { error: "Spotify 키가 서버에 설정되어 있지 않습니다." }); return true;
+    }
+    try {
+      const results = await searchSpotifyTracks(q, { limit: 20, market: "KR" });
+      sendJson(res, 200, { tracks: results });
+    } catch (e) {
+      console.error("[/api/search]", e?.message || e);
+      sendJson(res, 500, { error: "검색 실패: " + (e?.message || "알 수 없는 오류") });
+    }
+    return true;
+  }
+
   if (pathname === "/api/spotify/token" && req.method === "GET") {
     if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
       sendJson(res, 503, { error: "Spotify 미설정" }); return true;
