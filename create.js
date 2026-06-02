@@ -297,7 +297,12 @@ async function searchTracks() {
     });
     const data = await res.json();
     if (res.status === 429) {
-      const secs = data.retryAfter || 30;
+      const secs = Math.min(data.retryAfter || 30, 60);
+      if ((data.retryAfter || 30) > 60) {
+        searchResults.innerHTML = "<p class='state-msg'>Spotify API 일시 차단됨 — 수분 후 다시 시도해 주세요</p>";
+        searchBtn.disabled = false;
+        return;
+      }
       startSearchCountdown(secs, q);
       return;
     }
