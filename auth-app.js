@@ -67,6 +67,14 @@ updateAuthUi();
   if (!token) return;
   try {
     const res = await fetch("/api/user/profile", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401) {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("authName");
+      localStorage.removeItem("authUsername");
+      localStorage.removeItem("authAvatarUrl");
+      updateAuthUi();
+      return;
+    }
     if (!res.ok) return;
     const data = await res.json();
     const avatarUrl = data?.user?.avatar_url || null;
