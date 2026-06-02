@@ -144,8 +144,8 @@ function renderBuiltList() {
     });
     row.addEventListener("dragover", e => {
       e.preventDefault();
+      if (dragSrcIndex === null) return; // 외부 드래그는 dropZone으로 버블링
       e.stopPropagation();
-      if (dragSrcIndex === null) return;
       const rect = row.getBoundingClientRect();
       const mid = rect.top + rect.height / 2;
       row.classList.remove("drag-over-top", "drag-over-bottom");
@@ -156,8 +156,8 @@ function renderBuiltList() {
     });
     row.addEventListener("drop", e => {
       e.preventDefault();
+      if (dragSrcIndex === null || !e.dataTransfer.getData("reorder")) return; // 외부 드래그는 dropZone으로 버블링
       e.stopPropagation();
-      if (dragSrcIndex === null || !e.dataTransfer.getData("reorder")) return;
       const rect = row.getBoundingClientRect();
       const mid = rect.top + rect.height / 2;
       let targetIdx = parseInt(row.dataset.index);
