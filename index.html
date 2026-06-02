@@ -6,229 +6,106 @@
     <title>Audiya | 음악 추천</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/png" href="/audiya_logo.png" />
+    <script src="theme.js"></script>
   </head>
   <body>
-    <div class="bg-shape bg-shape-1"></div>
-    <div class="bg-shape bg-shape-2"></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <button
-      id="themeToggle"
-      class="theme-toggle"
-      type="button"
-      aria-label="다크모드 전환"
-      title="흑/백 전환"
-    ></button>
+
+    <nav class="navbar">
+      <span class="nav-brand">AUDIYA</span>
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="다크모드 전환" title="다크/라이트 전환"></button>
+        <button id="authLink" class="nav-btn" type="button">로그인</button>
+        <a id="profileLink" href="/profile.html" style="display:none; text-decoration:none;">
+          <div id="profileAvatar" class="nav-avatar"></div>
+        </a>
+      </div>
+    </nav>
 
     <header class="hero">
-      <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          width: 100%;
-          margin-bottom: 30px;
-        "
-      >
-        <p class="brand">AUDIYA</p>
-        <div style="display: inline-flex; align-items: center; gap: 12px">
-          <button
-            id="authLink"
-            style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;"
-          >로그인</button>
-          <a
-            id="profileLink"
-            href="/profile.html"
-            style="display: none; align-items: center; gap: 8px; text-decoration: none;"
-          >
-            <div
-              id="profileAvatar"
-              style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,#667eea,#764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; cursor: pointer;"
-            ></div>
-          </a>
-        </div>
-      </div>
-      <h1>취향과 감성을 함께 분석해 나만의 플레이리스트를 추천합니다.</h1>
-      <p class="hero-desc">
-        장르, 좋아하는 곡, 캡처 이미지, 기분/상태/색/계절 데이터를 조합해 개인화
-        추천을 제공하는 MVP 초안입니다.
-      </p>
+      <div class="hero-tag">AI 기반 음악 추천</div>
+      <h1>취향과 감성으로 찾는<br>나만의 플레이리스트</h1>
+      <p class="hero-desc">장르, 기분, 이미지, 가사까지 — AI가 당신의 음악 취향을 분석합니다</p>
     </header>
 
     <main class="workspace">
       <section class="left-stack">
+
         <section class="panel control-panel">
-          <h2>추천 입력</h2>
+          <h2 class="panel-title">추천 설정</h2>
 
           <div class="field-grid">
             <div class="field-group">
-              <p class="label-head">선호 장르(복수 선택)</p>
+              <p class="label-head">선호 장르 <span class="label-badge">복수 선택</span></p>
               <div class="option-group" data-type="multi" data-name="genre">
-                <button type="button" class="choice-btn" data-value="kpop">
-                  K-POP
-                </button>
-                <button type="button" class="choice-btn" data-value="jpop">
-                  J-POP
-                </button>
-                <button type="button" class="choice-btn" data-value="pop">
-                  POP
-                </button>
-                <button type="button" class="choice-btn" data-value="hiphop">
-                  HIPHOP
-                </button>
-                <button type="button" class="choice-btn" data-value="rnb">
-                  R&amp;B
-                </button>
-                <button type="button" class="choice-btn" data-value="band">
-                  BAND
-                </button>
-                <button type="button" class="choice-btn" data-value="edm">
-                  EDM
-                </button>
-                <button type="button" class="choice-btn" data-value="indie">
-                  INDIE
-                </button>
-                <button type="button" class="choice-btn" data-value="ballad">
-                  BALLAD
-                </button>
+                <button type="button" class="choice-btn" data-value="kpop">K-POP</button>
+                <button type="button" class="choice-btn" data-value="jpop">J-POP</button>
+                <button type="button" class="choice-btn" data-value="pop">POP</button>
+                <button type="button" class="choice-btn" data-value="hiphop">HIPHOP</button>
+                <button type="button" class="choice-btn" data-value="rnb">R&amp;B</button>
+                <button type="button" class="choice-btn" data-value="band">BAND</button>
+                <button type="button" class="choice-btn" data-value="edm">EDM</button>
+                <button type="button" class="choice-btn" data-value="indie">INDIE</button>
+                <button type="button" class="choice-btn" data-value="ballad">BALLAD</button>
               </div>
             </div>
 
             <div class="field-group">
               <p class="label-head">추천 범위</p>
-              <div
-                class="option-group"
-                data-type="single"
-                data-name="origin"
-                data-default="all"
-              >
-                <button type="button" class="choice-btn" data-value="all">
-                  전체
-                </button>
-                <button type="button" class="choice-btn" data-value="domestic">
-                  국내(대한민국)
-                </button>
-                <button type="button" class="choice-btn" data-value="japan">
-                  일본
-                </button>
-                <button type="button" class="choice-btn" data-value="global">
-                  해외
-                </button>
+              <div class="option-group" data-type="single" data-name="origin" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">전체</button>
+                <button type="button" class="choice-btn" data-value="domestic">국내</button>
+                <button type="button" class="choice-btn" data-value="japan">일본</button>
+                <button type="button" class="choice-btn" data-value="global">해외</button>
               </div>
             </div>
 
             <div class="field-group">
               <p class="label-head">기분</p>
-              <div
-                class="option-group"
-                data-type="single"
-                data-name="mood"
-                data-default="all"
-              >
-                <button type="button" class="choice-btn" data-value="all">
-                  무관
-                </button>
-                <button type="button" class="choice-btn" data-value="happy">
-                  신남 😆
-                </button>
-                <button type="button" class="choice-btn" data-value="calm">
-                  잔잔함 🌊
-                </button>
-                <button type="button" class="choice-btn" data-value="focus">
-                  집중 📚
-                </button>
-                <button type="button" class="choice-btn" data-value="sad">
-                  감성 🌙
-                </button>
-                <button type="button" class="choice-btn" data-value="romantic">
-                  설렘 💫
-                </button>
+              <div class="option-group" data-type="single" data-name="mood" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="happy">신남 😆</button>
+                <button type="button" class="choice-btn" data-value="calm">잔잔함 🌊</button>
+                <button type="button" class="choice-btn" data-value="focus">집중 📚</button>
+                <button type="button" class="choice-btn" data-value="sad">감성 🌙</button>
+                <button type="button" class="choice-btn" data-value="romantic">설렘 💫</button>
               </div>
             </div>
 
             <div class="field-group">
-              <p class="label-head">상태/상황</p>
-              <div
-                class="option-group"
-                data-type="single"
-                data-name="state"
-                data-default="all"
-              >
-                <button type="button" class="choice-btn" data-value="all">
-                  무관
-                </button>
-                <button type="button" class="choice-btn" data-value="workout">
-                  운동
-                </button>
-                <button type="button" class="choice-btn" data-value="study">
-                  공부
-                </button>
-                <button type="button" class="choice-btn" data-value="drive">
-                  드라이브
-                </button>
-                <button type="button" class="choice-btn" data-value="night">
-                  야간
-                </button>
-                <button type="button" class="choice-btn" data-value="walk">
-                  산책
-                </button>
+              <p class="label-head">상황</p>
+              <div class="option-group" data-type="single" data-name="state" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="workout">운동</button>
+                <button type="button" class="choice-btn" data-value="study">공부</button>
+                <button type="button" class="choice-btn" data-value="drive">드라이브</button>
+                <button type="button" class="choice-btn" data-value="night">야간</button>
+                <button type="button" class="choice-btn" data-value="walk">산책</button>
               </div>
             </div>
 
             <div class="field-group">
               <p class="label-head">색감</p>
-              <div
-                class="option-group"
-                data-type="single"
-                data-name="color"
-                data-default="all"
-              >
-                <button type="button" class="choice-btn" data-value="all">
-                  무관
-                </button>
-                <button type="button" class="choice-btn" data-value="orange">
-                  오렌지
-                </button>
-                <button type="button" class="choice-btn" data-value="blue">
-                  블루
-                </button>
-                <button type="button" class="choice-btn" data-value="green">
-                  그린
-                </button>
-                <button type="button" class="choice-btn" data-value="red">
-                  레드
-                </button>
-                <button type="button" class="choice-btn" data-value="purple">
-                  퍼플
-                </button>
+              <div class="option-group" data-type="single" data-name="color" data-default="all">
+                <button type="button" class="choice-btn" data-value="all">무관</button>
+                <button type="button" class="choice-btn" data-value="orange">오렌지</button>
+                <button type="button" class="choice-btn" data-value="blue">블루</button>
+                <button type="button" class="choice-btn" data-value="green">그린</button>
+                <button type="button" class="choice-btn" data-value="red">레드</button>
+                <button type="button" class="choice-btn" data-value="purple">퍼플</button>
               </div>
             </div>
 
             <div class="field-group">
               <p class="label-head">계절</p>
-              <div
-                class="option-group"
-                data-type="single"
-                data-name="season"
-                data-default="spring"
-              >
-                <button type="button" class="choice-btn" data-value="spring">
-                  봄 🌸
-                </button>
-                <button type="button" class="choice-btn" data-value="summer">
-                  여름 ☀️
-                </button>
-                <button type="button" class="choice-btn" data-value="autumn">
-                  가을 🍂
-                </button>
-                <button type="button" class="choice-btn" data-value="winter">
-                  겨울 ❄️
-                </button>
+              <div class="option-group" data-type="single" data-name="season" data-default="spring">
+                <button type="button" class="choice-btn" data-value="spring">봄 🌸</button>
+                <button type="button" class="choice-btn" data-value="summer">여름 ☀️</button>
+                <button type="button" class="choice-btn" data-value="autumn">가을 🍂</button>
+                <button type="button" class="choice-btn" data-value="winter">겨울 ❄️</button>
               </div>
             </div>
 
@@ -237,64 +114,43 @@
               <div class="range-wrap">
                 <div class="range-topline">
                   <span class="helper">선택 곡 수</span>
-                  <span class="range-badge"
-                    ><strong id="countValue">10</strong>곡</span
-                  >
+                  <span class="range-badge"><strong id="countValue">10</strong>곡</span>
                 </div>
-                <input
-                  id="countRange"
-                  type="range"
-                  min="0"
-                  max="20"
-                  step="1"
-                  value="10"
-                />
+                <input id="countRange" type="range" min="0" max="20" step="1" value="10" />
                 <div class="range-scale" aria-hidden="true">
-                  <span>0</span>
-                  <span>20</span>
+                  <span>0</span><span>20</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="field-group">
-            <label for="likes">좋아하는 곡/가수 입력</label>
-            <textarea
-              id="likes"
-              rows="3"
-              placeholder="예: NewJeans, 태연, 밤산책할 때 듣는 곡"
-            ></textarea>
+          <div class="field-group input-group-divider">
+            <label for="likes">좋아하는 곡 / 아티스트</label>
+            <textarea id="likes" rows="3" placeholder="예: NewJeans, 태연, 밤산책할 때 듣는 곡"></textarea>
           </div>
 
           <div class="field-group">
-            <label for="capture">플레이리스트 캡처 이미지 업로드</label>
-            <input id="capture" type="file" accept="image/*" />
-            <p id="captureHint" class="helper">
-              이미지를 올리면 OCR로 곡/아티스트 텍스트를 분석합니다.
-            </p>
+            <label for="capture">플레이리스트 캡처 이미지</label>
+            <label class="file-drop" for="capture">
+              <input id="capture" type="file" accept="image/*" style="display:none;" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="fileLabel">이미지를 클릭하거나 드래그하세요</span>
+            </label>
+            <p id="captureHint" class="helper">이미지 업로드 시 OCR로 곡/아티스트 텍스트를 자동 분석합니다.</p>
           </div>
 
           <div class="field-group">
             <label for="spotifyUrl">Spotify 플레이리스트 URL</label>
             <div class="inline-row">
-              <input
-                id="spotifyUrl"
-                type="url"
-                placeholder="https://open.spotify.com/playlist/..."
-              />
-              <button id="spotifyAnalyzeBtn" type="button">URL 분석 🔗</button>
+              <input id="spotifyUrl" type="url" placeholder="https://open.spotify.com/playlist/..." />
+              <button id="spotifyAnalyzeBtn" type="button" class="secondary-btn">분석 🔗</button>
             </div>
-            <p id="spotifyHint" class="helper">
-              플레이리스트 URL을 넣고 분석하면 제목/작성자 정보를 추천에
-              반영합니다.
-            </p>
+            <p id="spotifyHint" class="helper">URL 분석 시 플레이리스트 정보를 추천에 반영합니다.</p>
           </div>
 
           <div class="action-row">
-            <button id="recommendBtn">추천 받기 🎧</button>
-            <button id="resetBtn" type="button" class="secondary-btn">
-              초기화
-            </button>
+            <button id="recommendBtn" class="recommend-btn">추천 받기 🎧</button>
+            <button id="resetBtn" type="button" class="secondary-btn">초기화</button>
           </div>
         </section>
 
@@ -305,9 +161,9 @@
           <div id="insights" class="insights"></div>
         </section>
 
-        <section class="panel" style="padding: 20px;">
-          <div class="result-head" style="margin-bottom:14px;">
-            <h2>🏆 이주의 플레이리스트</h2>
+        <section class="panel">
+          <div class="result-head">
+            <h2>이주의 플레이리스트 🏆</h2>
           </div>
           <div id="weeklyRanking">
             <p class="helper">불러오는 중...</p>
@@ -316,38 +172,21 @@
 
         <section class="panel share-panel">
           <div class="result-head">
-            <h2>공유 플레이리스트</h2>
-            <button id="goShareBtn" type="button" style="padding:6px 14px; background:#667eea; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">공유하러 가기 →</button>
+            <h2>커뮤니티 플레이리스트</h2>
+            <button id="goShareBtn" type="button" class="ghost-btn">공유 페이지 →</button>
           </div>
           <div id="sharedPlaylists" class="share-grid"></div>
         </section>
+
       </section>
 
       <aside class="panel result-panel result-dock">
         <div class="result-head">
           <h2>추천 플레이리스트</h2>
-          <span id="resultCount">0곡</span>
+          <span id="resultCount" class="result-count-badge">0곡</span>
         </div>
-        <p id="qualityHint" class="quality-hint quality-normal">
-          데이터 품질: 정상 모드
-        </p>
-        <button
-          id="savePlBtn"
-          type="button"
-          style="
-            display: none;
-            width: 100%;
-            margin-bottom: 14px;
-            padding: 10px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-          "
-        >
+        <p id="qualityHint" class="quality-hint quality-normal">데이터 품질: 정상 모드</p>
+        <button id="savePlBtn" type="button" class="save-pl-btn" style="display:none;">
           내 플레이리스트에 저장 💾
         </button>
         <div id="cards" class="cards"></div>
@@ -357,5 +196,24 @@
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="auth-app.js"></script>
     <script src="app.js"></script>
+    <script>
+      // 파일 입력 레이블 업데이트
+      document.getElementById('capture').addEventListener('change', function() {
+        const label = document.getElementById('fileLabel');
+        label.textContent = this.files[0] ? this.files[0].name : '이미지를 클릭하거나 드래그하세요';
+      });
+      // 리플 효과
+      document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button:not(:disabled)');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const r = document.createElement('span');
+        r.className = 'ripple';
+        const size = Math.max(rect.width, rect.height);
+        r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;top:${e.clientY - rect.top - size / 2}px`;
+        btn.appendChild(r);
+        r.addEventListener('animationend', () => r.remove());
+      });
+    </script>
   </body>
 </html>

@@ -3,75 +3,103 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Audiya | 플레이리스트 공유</title>
+    <title>Audiya | 커뮤니티</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
     <script src="theme.js"></script>
+    <link rel="icon" type="image/png" href="/audiya_logo.png" />
     <style>
       :root {
-        --bg: #f4f2ff;
+        --bg: linear-gradient(160deg,#f0f2ff,#ece9ff 40%,#f5eeff 75%,#fff0fb);
         --surface: rgba(255,255,255,0.88);
         --border: rgba(139,92,246,0.16);
         --text: #1e1b3a; --muted: #6b7280; --sub: #9ca3af;
         --primary: #6366f1; --secondary: #8b5cf6;
-        --input-bg: rgba(255,255,255,0.7); --input-border: rgba(99,102,241,0.22);
+        --input-bg: rgba(255,255,255,0.7); --input-border: rgba(99,102,241,0.2);
         --divider: rgba(139,92,246,0.1);
-        --tab-inactive: rgba(255,255,255,0.5); --tab-active: #6366f1;
-        --genre-bg: rgba(255,255,255,0.7); --genre-border: rgba(99,102,241,0.2);
+        --tab-inactive: rgba(255,255,255,0.5);
         --err-bg: rgba(220,38,38,0.07); --err-text: #dc2626;
         --ok-bg: rgba(22,163,74,0.07); --ok-text: #16a34a;
         --card-shadow: 0 2px 16px rgba(99,102,241,0.07);
-        --hero1: #6366f1; --hero2: #8b5cf6;
+        --chip-bg: #eef2ff; --chip-border: #c7d2fe; --chip-text: #4338ca;
       }
       [data-theme="dark"] {
-        --bg: #08070f;
-        --surface: rgba(18,15,38,0.9);
-        --border: rgba(167,139,250,0.2);
+        --bg: linear-gradient(160deg,#08070f,#0e0b1c 40%,#12091e 75%,#140b1c);
+        --surface: rgba(18,15,38,0.9); --border: rgba(167,139,250,0.2);
         --text: #e2e0f0; --muted: #9ca3af; --sub: #6b7280;
         --primary: #818cf8; --secondary: #a78bfa;
-        --input-bg: rgba(14,11,28,0.8); --input-border: rgba(129,140,248,0.28);
+        --input-bg: rgba(14,11,28,0.8); --input-border: rgba(129,140,248,0.26);
         --divider: rgba(167,139,250,0.12);
-        --tab-inactive: rgba(18,15,38,0.5); --tab-active: #818cf8;
-        --genre-bg: rgba(14,11,28,0.7); --genre-border: rgba(129,140,248,0.25);
+        --tab-inactive: rgba(18,15,38,0.5);
         --err-bg: rgba(220,38,38,0.12); --err-text: #f87171;
         --ok-bg: rgba(22,163,74,0.12); --ok-text: #4ade80;
         --card-shadow: 0 2px 16px rgba(0,0,0,0.4);
-        --hero1: #4f46e5; --hero2: #7c3aed;
+        --chip-bg: rgba(99,102,241,0.18); --chip-border: rgba(129,140,248,0.35); --chip-text: #c7d2fe;
       }
-      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: "Noto Sans KR", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+      *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+      html { scroll-behavior:smooth; }
+      body { font-family:"Noto Sans KR",system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+      body::before {
+        content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+        background: radial-gradient(80% 60% at 15% 10%, rgba(99,102,241,0.08) 0%, transparent 65%),
+                    radial-gradient(70% 55% at 85% 80%, rgba(139,92,246,0.1) 0%, transparent 65%);
+      }
 
-      .top-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); }
-      .top-bar a { display:flex; align-items:center; gap:5px; text-decoration:none; color:var(--muted); font-size:13px; transition:color 0.2s; }
+      /* 상단 바 */
+      .top-bar {
+        background:var(--surface); border-bottom:1px solid var(--border);
+        padding:0 32px; height:62px; display:flex; align-items:center;
+        justify-content:space-between; position:sticky; top:0; z-index:50;
+        backdrop-filter:blur(24px); box-shadow:0 1px 20px rgba(99,102,241,0.06);
+      }
+      .top-bar a { display:flex; align-items:center; gap:6px; text-decoration:none; color:var(--muted); font-size:13px; font-weight:500; transition:color 0.2s; }
       .top-bar a:hover { color:var(--primary); }
-      .top-brand { font-family:"Space Grotesk",sans-serif; font-size:18px; font-weight:800; letter-spacing:2px; background:linear-gradient(135deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+      .top-brand { font-family:"Space Grotesk",sans-serif; font-size:19px; font-weight:800; letter-spacing:0.12em; background:linear-gradient(135deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; user-select:none; }
+      .nav-profile { color:var(--primary) !important; font-size:13px; font-weight:600; padding:7px 16px; border:1.5px solid var(--chip-border); border-radius:10px; background:var(--chip-bg); transition:all 0.2s !important; }
+      .nav-profile:hover { background:var(--primary) !important; color:#fff !important; border-color:var(--primary) !important; }
 
-      .hero { background:linear-gradient(135deg,var(--hero1),var(--hero2)); padding:32px 24px; text-align:center; color:#fff; }
-      .hero h1 { font-size:20px; font-weight:700; margin-bottom:5px; }
-      .hero p { font-size:13px; opacity:0.8; }
+      /* 히어로 */
+      .hero {
+        padding:48px 24px 40px; text-align:center;
+        background: linear-gradient(160deg, rgba(99,102,241,0.06) 0%, transparent 60%);
+        border-bottom:1px solid var(--border);
+        animation: hero-in 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
+      }
+      @keyframes hero-in { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+      .hero-tag {
+        display:inline-flex; align-items:center; gap:7px;
+        font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+        color:var(--primary); background:var(--chip-bg); border:1px solid var(--chip-border);
+        border-radius:999px; padding:5px 14px; margin-bottom:16px;
+      }
+      .hero-tag::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--primary); flex-shrink:0; animation:dot-pulse 2s ease-in-out infinite; }
+      @keyframes dot-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.6)} }
+      .hero h1 { font-family:"Space Grotesk",sans-serif; font-size:clamp(22px,3vw,32px); font-weight:800; color:var(--text); margin-bottom:10px; letter-spacing:-0.02em; }
+      .hero p { font-size:14px; color:var(--muted); max-width:480px; margin:0 auto; line-height:1.7; }
 
-      .layout { display:grid; grid-template-columns:340px 1fr; gap:20px; max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
-      @media(max-width:800px) { .layout { grid-template-columns:1fr; } }
+      /* 레이아웃 */
+      .layout { display:grid; grid-template-columns:320px 1fr; gap:24px; max-width:1140px; margin:0 auto; padding:28px 24px 80px; }
+      @media(max-width:820px) { .layout{grid-template-columns:1fr} }
 
-      /* 공유 사이드 */
-      .share-side {}
-
-      .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:var(--card-shadow); backdrop-filter:blur(12px); }
-      .card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--divider); }
+      /* 공유 카드 */
+      .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:22px; margin-bottom:18px; box-shadow:var(--card-shadow); backdrop-filter:blur(12px); }
+      .card-title { font-family:"Space Grotesk",sans-serif; font-size:14px; font-weight:700; color:var(--text); margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--divider); letter-spacing:-0.01em; }
 
       .tab-row { display:flex; margin-bottom:16px; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
-      .tab-btn { flex:1; padding:9px 0; background:var(--tab-inactive); border:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all 0.2s; box-shadow:none; margin:0; }
+      .tab-btn { flex:1; padding:9px 0; background:var(--tab-inactive); border:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all 0.2s; box-shadow:none; margin:0; position:relative; overflow:hidden; }
       .tab-btn.active { background:var(--primary); color:#fff; font-weight:700; }
+      .tab-btn:hover:not(.active) { background:var(--chip-bg); color:var(--primary); }
 
       .field { margin-bottom:12px; }
-      .field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
-      .field input { width:100%; padding:9px 12px; border:1.5px solid var(--input-border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--input-bg); color:var(--text); transition:border-color 0.2s; }
+      .field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; letter-spacing:0.02em; }
+      .field input { width:100%; padding:9px 12px; border:1.5px solid var(--input-border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--input-bg); color:var(--text); transition:border-color 0.2s, box-shadow 0.2s; }
       .field input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
       .field input::placeholder { color:var(--sub); }
 
-      .btn-primary { width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:4px; box-shadow:0 4px 14px rgba(99,102,241,0.3); transition:opacity 0.2s,transform 0.15s; }
+      .btn-primary { position:relative; overflow:hidden; width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:4px; box-shadow:0 4px 16px rgba(99,102,241,0.3); transition:opacity 0.2s,transform 0.18s; }
       .btn-primary:hover:not(:disabled) { opacity:0.9; transform:translateY(-1px); }
+      .btn-primary:active:not(:disabled) { transform:scale(0.97); transition-duration:0.06s; }
       .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
 
       .track-preview { background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px; max-height:160px; overflow-y:auto; }
@@ -82,68 +110,78 @@
       .t-title { font-weight:600; color:var(--text); }
       .t-artist { color:var(--sub); font-size:11px; }
 
-      .alert { padding:8px 12px; border-radius:7px; font-size:12px; margin-top:10px; display:none; }
+      .alert { padding:8px 12px; border-radius:8px; font-size:12px; margin-top:10px; display:none; }
       .alert.show { display:block; }
-      .alert-error { background:var(--err-bg); color:var(--err-text); }
-      .alert-success { background:var(--ok-bg); color:var(--ok-text); }
+      .alert-error { background:var(--err-bg); color:var(--err-text); border-left:2px solid var(--err-text); }
+      .alert-success { background:var(--ok-bg); color:var(--ok-text); border-left:2px solid var(--ok-text); }
 
       .saved-pl-list { max-height:280px; overflow-y:auto; }
-      .saved-pl-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--divider); }
+      .saved-pl-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--divider); transition:background 0.15s; }
       .saved-pl-item:last-child { border-bottom:none; }
       .saved-thumb { width:36px; height:36px; border-radius:6px; background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15)); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; overflow:hidden; }
       .saved-thumb img { width:100%; height:100%; object-fit:cover; }
       .saved-info { flex:1; min-width:0; }
       .saved-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .saved-meta { font-size:11px; color:var(--sub); }
-      .btn-share-small { padding:5px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; box-shadow:none; margin:0; }
-      .btn-share-small:hover { opacity:0.85; transform:none; }
+      .btn-share-small { position:relative; overflow:hidden; padding:5px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; box-shadow:none; margin:0; transition:opacity 0.2s,transform 0.15s; }
+      .btn-share-small:hover { opacity:0.85; transform:translateY(-1px); }
 
-      .filter-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
-      .genre-btn { padding:6px 14px; border-radius:20px; border:1.5px solid var(--genre-border); background:var(--genre-bg); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; font-family:inherit; white-space:nowrap; box-shadow:none; margin:0; }
-      .genre-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; }
-      .genre-btn:hover:not(.active) { border-color:var(--primary); color:var(--primary); transform:none; box-shadow:none; }
+      /* 필터 바 */
+      .filter-bar { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+      .genre-btn { position:relative; overflow:hidden; padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; font-family:inherit; white-space:nowrap; box-shadow:none; margin:0; }
+      .genre-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; box-shadow:0 3px 12px rgba(99,102,241,0.28); }
+      .genre-btn:hover:not(.active) { border-color:var(--primary); color:var(--primary); background:var(--chip-bg); transform:translateY(-1px); }
+      .genre-btn:active { transform:scale(0.95); transition-duration:0.06s; }
 
-      .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-      .section-title { font-size:15px; font-weight:700; color:var(--text); }
-      .sort-label { font-size:12px; color:var(--sub); }
+      .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+      .section-title { font-family:"Space Grotesk",sans-serif; font-size:16px; font-weight:800; color:var(--text); letter-spacing:-0.01em; }
+      .sort-label { font-size:12px; color:var(--sub); background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:999px; padding:3px 10px; font-weight:600; color:var(--chip-text); }
 
-      .pl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
-      .pl-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--card-shadow); cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; backdrop-filter:blur(8px); }
-      .pl-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(99,102,241,0.14); }
+      /* 플레이리스트 카드 */
+      .pl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:14px; }
+      .pl-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--card-shadow); cursor:pointer; transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s; backdrop-filter:blur(8px); }
+      .pl-card:hover { transform:translateY(-4px); box-shadow:0 10px 28px rgba(99,102,241,0.15); border-color:var(--primary); }
       .pl-thumb { width:100%; aspect-ratio:1; background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.1)); display:flex; align-items:center; justify-content:center; font-size:32px; overflow:hidden; }
-      .pl-thumb img { width:100%; height:100%; object-fit:cover; }
+      .pl-thumb img { width:100%; height:100%; object-fit:cover; transition:transform 0.3s; }
+      .pl-card:hover .pl-thumb img { transform:scale(1.04); }
       .pl-body { padding:10px 12px; }
       .pl-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .pl-owner { font-size:11px; color:var(--muted); margin-bottom:5px; }
       .pl-foot { display:flex; align-items:center; justify-content:space-between; }
       .pl-meta { font-size:11px; color:var(--sub); }
-      .like-btn { background:none; border:none; box-shadow:none; margin:0; font-size:16px; cursor:pointer; padding:2px; line-height:1; transition:transform 0.15s; color:var(--text); }
-      .like-btn:hover { transform:scale(1.25); }
-      .del-btn { background:none; border:none; box-shadow:none; margin:0; font-size:13px; cursor:pointer; padding:2px 6px; color:var(--sub); transition:color 0.2s; border-radius:4px; }
+      .like-btn { background:none; border:none; box-shadow:none; margin:0; font-size:15px; cursor:pointer; padding:3px; line-height:1; transition:transform 0.2s; color:var(--text); }
+      .like-btn:hover { transform:scale(1.3); }
+      .like-btn:active { transform:scale(0.9); transition-duration:0.06s; }
+      .del-btn { background:none; border:none; box-shadow:none; margin:0; font-size:13px; cursor:pointer; padding:2px 6px; color:var(--sub); transition:color 0.2s,background 0.2s; border-radius:4px; }
       .del-btn:hover { color:#f87171; background:rgba(220,38,38,0.08); transform:none; }
 
       .empty { text-align:center; padding:50px 20px; color:var(--sub); font-size:14px; }
-      .loading { text-align:center; padding:30px; color:var(--sub); font-size:13px; }
+      .loading { text-align:center; padding:40px; color:var(--sub); font-size:13px; }
 
-      .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
-      .modal-overlay.open { display:flex; }
-      .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:460px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); backdrop-filter:blur(20px); }
-      .modal-head { padding:16px 20px; border-bottom:1px solid var(--divider); display:flex; align-items:center; justify-content:space-between; }
-      .modal-head h3 { font-size:15px; font-weight:700; color:var(--text); }
-      .modal-close { background:none; border:none; box-shadow:none; margin:0; font-size:20px; color:var(--sub); cursor:pointer; line-height:1; padding:0; }
-      .modal-close:hover { color:var(--text); transform:none; }
+      /* 모달 */
+      .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(6px); }
+      .modal-overlay.open { display:flex; animation:modal-in 0.25s cubic-bezier(0.16,1,0.3,1); }
+      @keyframes modal-in { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+      .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:460px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,0.3); backdrop-filter:blur(24px); }
+      .modal-head { padding:18px 20px; border-bottom:1px solid var(--divider); display:flex; align-items:center; justify-content:space-between; }
+      .modal-head h3 { font-size:15px; font-weight:700; color:var(--text); font-family:"Space Grotesk",sans-serif; }
+      .modal-close { background:none; border:none; box-shadow:none; margin:0; font-size:20px; color:var(--sub); cursor:pointer; line-height:1; padding:2px; border-radius:6px; transition:color 0.2s,background 0.2s; }
+      .modal-close:hover { color:var(--text); background:var(--chip-bg); transform:none; }
       .modal-tracks { overflow-y:auto; padding:12px 20px; flex:1; }
-      .modal-track { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider); }
+      .modal-track { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider); transition:background 0.15s; border-radius:6px; }
       .modal-track:last-child { border-bottom:none; }
       .modal-num { color:var(--sub); font-size:11px; width:20px; text-align:right; flex-shrink:0; }
       .modal-cover { width:36px; height:36px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
       .modal-info .mt { font-size:13px; font-weight:600; color:var(--text); }
       .modal-info .ma { font-size:11px; color:var(--sub); }
-      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); display:flex; gap:8px; }
-      .btn-like-modal { flex:1; padding:10px; background:rgba(139,92,246,0.1); color:var(--secondary); border:1px solid rgba(139,92,246,0.3); border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; }
-      .btn-like-modal:hover { background:var(--secondary); color:#fff; transform:none; }
+      .modal-foot { padding:14px 20px; border-top:1px solid var(--divider); }
+      .btn-like-modal { position:relative; overflow:hidden; width:100%; padding:11px; background:var(--chip-bg); color:var(--primary); border:1.5px solid var(--chip-border); border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:none; transition:all 0.2s; margin:0; }
+      .btn-like-modal:hover { background:var(--primary); color:#fff; border-color:var(--primary); transform:translateY(-1px); box-shadow:0 4px 14px rgba(99,102,241,0.3); }
+
+      /* 리플 */
+      @keyframes ripple { 0%{transform:scale(0);opacity:0.55} 100%{transform:scale(2.5);opacity:0} }
+      .ripple { position:absolute; border-radius:50%; background:rgba(255,255,255,0.3); pointer-events:none; animation:ripple 0.55s linear; }
     </style>
-    <link rel="icon" type="image/png" href="/audiya_logo.png" />
   </head>
   <body>
     <div class="top-bar">
@@ -152,37 +190,31 @@
         메인으로
       </a>
       <span class="top-brand">AUDIYA</span>
-      <a href="/profile.html" id="profileLink" style="color:var(--primary); font-size:13px; font-weight:600; display:none;">내 프로필</a>
+      <a href="/profile.html" id="profileLink" class="nav-profile" style="display:none;">내 프로필</a>
     </div>
 
     <div class="hero">
-      <h1>플레이리스트 공유 🤝</h1>
-      <p>나의 플레이리스트를 커뮤니티와 공유하고 다른 사람의 취향을 발견하세요</p>
+      <div class="hero-tag">커뮤니티 플레이리스트</div>
+      <h1>음악 취향을 나눠보세요</h1>
+      <p>내 플레이리스트를 공유하고 다른 사람의 취향을 발견하세요</p>
     </div>
 
     <div class="layout">
-
-      <!-- 공유 사이드바 -->
       <div class="share-side">
         <div class="card" id="shareCard">
-          <div class="card-title">공유하기</div>
-
+          <div class="card-title">플레이리스트 공유</div>
           <div class="tab-row">
             <button class="tab-btn active" id="tabPending">지금 만든 추천</button>
-            <button class="tab-btn" id="tabSaved">내 저장 플레이리스트</button>
+            <button class="tab-btn" id="tabSaved">내 저장 목록</button>
           </div>
-
-          <!-- 현재 추천 공유 -->
           <div id="panelPending">
             <div id="pendingContent"></div>
             <div class="alert alert-error" id="shareError"></div>
             <div class="alert alert-success" id="shareSuccess"></div>
           </div>
-
-          <!-- 저장된 플레이리스트 공유 -->
           <div id="panelSaved" style="display:none;">
             <div class="saved-pl-list" id="savedPlList">
-              <p style="color:#bbb; font-size:13px; text-align:center; padding:20px;">불러오는 중...</p>
+              <p style="color:var(--sub);font-size:13px;text-align:center;padding:20px;">불러오는 중...</p>
             </div>
             <div class="alert alert-error" id="savedShareError"></div>
             <div class="alert alert-success" id="savedShareSuccess"></div>
@@ -190,13 +222,11 @@
         </div>
       </div>
 
-      <!-- 커뮤니티 메인 -->
       <div class="community-side">
         <div class="section-head">
-          <span class="section-title">🎵 커뮤니티 플레이리스트</span>
-          <span class="sort-label">인기순 정렬</span>
+          <span class="section-title">커뮤니티 플레이리스트</span>
+          <span class="sort-label">인기순</span>
         </div>
-
         <div class="filter-bar">
           <button class="genre-btn active" data-genre="all">전체</button>
           <button class="genre-btn" data-genre="kpop">K-POP</button>
@@ -209,15 +239,12 @@
           <button class="genre-btn" data-genre="indie">인디</button>
           <button class="genre-btn" data-genre="ballad">발라드</button>
         </div>
-
         <div class="loading" id="communityLoading">불러오는 중...</div>
         <div class="pl-grid" id="communityGrid" style="display:none;"></div>
         <div class="empty" id="communityEmpty" style="display:none;">해당 장르의 플레이리스트가 없습니다</div>
       </div>
-
     </div>
 
-    <!-- 트랙 모달 -->
     <div class="modal-overlay" id="trackModal">
       <div class="modal-box">
         <div class="modal-head">
@@ -232,5 +259,18 @@
     </div>
 
     <script src="share.js"></script>
+    <script>
+      document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button:not(:disabled)');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const r = document.createElement('span');
+        r.className = 'ripple';
+        const size = Math.max(rect.width, rect.height);
+        r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+        btn.appendChild(r);
+        r.addEventListener('animationend', () => r.remove());
+      });
+    </script>
   </body>
 </html>
