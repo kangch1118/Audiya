@@ -11,6 +11,7 @@
           "profile.html",
           "share.html",
           "callback.html",
+          "create.html",
           "styles.css",
           "app.js",
           "auth.js",
@@ -18,6 +19,7 @@
           "profile.js",
           "share.js",
           "theme.js",
+          "create.js",
           "audiya_logo.png"
         ]
       }
