@@ -589,9 +589,38 @@ async function loadLikedIds() {
   if (ok) likedIds = new Set((data.ids || []).map(String));
 }
 
+// ── 이주의 순위 (사이드) ──────────────────────────────
+async function loadWeeklySide() {
+  const el = document.getElementById("weeklySideList");
+  if (!el) return;
+  try {
+    const res = await fetch("/api/playlists/weekly-top");
+    const data = await res.json();
+    const items = data.items || [];
+    if (!items.length) { el.innerHTML = '<p style="color:var(--sub);font-size:11px;text-align:center;padding:8px 0;">데이터 없음</p>'; return; }
+    const medals = ["🥇","🥈","🥉","4","5"];
+    el.innerHTML = items.map((pl, i) => `
+      <div class="weekly-side-item" onclick="openWeeklyModal('${String(pl.id).replace(/'/g,"\\'")}')">
+        <span class="weekly-side-rank">${i < 3 ? medals[i] : i + 1}</span>
+        <div class="weekly-side-info">
+          <div class="weekly-side-name">${pl.name}</div>
+          <div class="weekly-side-meta">@${pl.owner} · ♥ ${pl.weeklyLikes || pl.likes || 0}</div>
+        </div>
+      </div>`).join("");
+  } catch (_e) {
+    el.innerHTML = '<p style="color:var(--sub);font-size:11px;text-align:center;padding:8px 0;">불러오기 실패</p>';
+  }
+}
+
+function openWeeklyModal(id) {
+  const pl = communityPlaylists.find(p => String(p.id) === String(id));
+  if (pl) openModal(pl);
+}
+
 // ── 초기화 ────────────────────────────────────────────
 (async () => {
   await loadLikedIds();
   renderPendingPanel();
   loadCommunity();
+  loadWeeklySide();
 })();

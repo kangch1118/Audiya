@@ -80,8 +80,32 @@
       .hero p { font-size:14px; color:var(--muted); max-width:480px; margin:0 auto; line-height:1.7; }
 
       /* 레이아웃 */
-      .layout { display:grid; grid-template-columns:320px 1fr; gap:24px; max-width:1140px; margin:0 auto; padding:28px 24px 80px; }
+      .layout { display:grid; grid-template-columns:320px 1fr; gap:24px; max-width:1200px; margin:0 auto; padding:28px 24px 80px; }
       @media(max-width:820px) { .layout{grid-template-columns:1fr} }
+      .community-inner { display:flex; gap:18px; align-items:start; }
+      .community-main { flex:1; min-width:0; }
+      .weekly-side {
+        width:176px; flex-shrink:0;
+        background:var(--surface); border:1px solid var(--border);
+        border-radius:16px; padding:14px; box-shadow:var(--card-shadow);
+        position:sticky; top:80px; backdrop-filter:blur(12px);
+      }
+      .weekly-side-title {
+        font-family:"Space Grotesk",sans-serif; font-size:12px; font-weight:700;
+        color:var(--muted); margin-bottom:12px; padding-bottom:8px;
+        border-bottom:1px solid var(--divider); letter-spacing:0.04em; text-transform:uppercase;
+      }
+      .weekly-side-item {
+        display:flex; align-items:center; gap:8px;
+        padding:7px 0; border-bottom:1px solid var(--divider); cursor:pointer;
+      }
+      .weekly-side-item:last-child { border-bottom:none; }
+      .weekly-side-item:hover .weekly-side-name { color:var(--primary); }
+      .weekly-side-rank { font-size:14px; flex-shrink:0; width:20px; text-align:center; line-height:1; }
+      .weekly-side-info { flex:1; min-width:0; }
+      .weekly-side-name { font-size:11px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color 0.15s; }
+      .weekly-side-meta { font-size:10px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      @media(max-width:900px) { .weekly-side { display:none; } }
 
       /* 공유 카드 */
       .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:22px; margin-bottom:18px; box-shadow:var(--card-shadow); backdrop-filter:blur(12px); }
@@ -279,9 +303,17 @@
           <button class="genre-btn" data-genre="indie">인디</button>
           <button class="genre-btn" data-genre="ballad">발라드</button>
         </div>
-        <div class="loading" id="communityLoading">불러오는 중...</div>
-        <div class="pl-grid" id="communityGrid" style="display:none;"></div>
-        <div class="empty" id="communityEmpty" style="display:none;">해당 장르의 플레이리스트가 없습니다</div>
+        <div class="community-inner">
+          <div class="community-main">
+            <div class="loading" id="communityLoading">불러오는 중...</div>
+            <div class="pl-grid" id="communityGrid" style="display:none;"></div>
+            <div class="empty" id="communityEmpty" style="display:none;">해당 장르의 플레이리스트가 없습니다</div>
+          </div>
+          <aside class="weekly-side">
+            <div class="weekly-side-title">🏆 이주의 순위</div>
+            <div id="weeklySideList"><p style="color:var(--sub);font-size:11px;text-align:center;padding:8px 0;">불러오는 중...</p></div>
+          </aside>
+        </div>
       </div>
     </div>
 
