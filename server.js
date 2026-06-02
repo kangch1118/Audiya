@@ -918,48 +918,43 @@ async function fetchSpotifyPlaylistOEmbedFallback(playlistId) {
 }
 
 async function searchSpotifyTracks(term, options = {}) {
-  const token = await getSpotifyAccessToken();
   const limit = Math.min(50, Math.max(1, Number(options.limit || 50)));
   const offset = Math.max(0, Number(options.offset || 0));
   const market = options.market || "KR";
   const endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(term)}&type=track&market=${encodeURIComponent(market)}&limit=${limit}&offset=${offset}`;
 
-  const response = await fetchWithTimeout(endpoint, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const validCreds = spotifyCredentials.filter(c => c.id && c.secret);
+  if (validCreds.length === 0) throw new Error("spotify-no-credentials");
 
-  if (response.status === 429) {
-    const retryAfter = parseInt(response.headers.get("retry-after") || "60", 10);
-    markSpotifyRateLimited(retryAfter);
-    throw new Error(`spotify-search-failed:429`);
-  }
-  if (!response.ok) {
-    throw new Error(`spotify-search-failed:${response.status}`);
-  }
+  for (let i = 0; i < validCreds.length; i++) {
+    const cred = validCreds[i];
+    let token;
+    try { token = await getSpotifyTokenForCred(cred); } catch (_e) { continue; }
 
-  const data = await response.json();
-  const items =
-    data && data.tracks && Array.isArray(data.tracks.items)
-      ? data.tracks.items
-      : [];
-  return items.map((track) => ({
-    title: track.name || "Unknown",
-    artist: Array.isArray(track.artists)
-      ? track.artists.map((artist) => artist.name).join(", ")
-      : "Unknown Artist",
-    source: "spotify",
-    spotifyUrl:
-      track.external_urls && track.external_urls.spotify
-        ? track.external_urls.spotify
-        : "",
-    previewUrl: track.preview_url || "",
-    coverUrl:
-      track.album && Array.isArray(track.album.images) && track.album.images[0]
-        ? track.album.images[0].url
-        : "",
-  }));
+    const response = await fetchWithTimeout(endpoint, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 429) {
+      console.log(`[Spotify] 키 ${i + 1} rate limited, 다음 키 시도`);
+      continue;
+    }
+    if (!response.ok) throw new Error(`spotify-search-failed:${response.status}`);
+
+    const data = await response.json();
+    const items = data?.tracks?.items || [];
+    return items.map((track) => ({
+      title: track.name || "Unknown",
+      artist: Array.isArray(track.artists)
+        ? track.artists.map((artist) => artist.name).join(", ")
+        : "Unknown Artist",
+      source: "spotify",
+      spotifyUrl: track.external_urls?.spotify || "",
+      previewUrl: track.preview_url || "",
+      coverUrl: track.album?.images?.[0]?.url || "",
+    }));
+  }
+  throw new Error("spotify-search-failed:429");
 }
 
 async function fetchSpotifyCandidates(terms, options = {}) {
