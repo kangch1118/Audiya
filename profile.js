@@ -77,6 +77,13 @@ function setAvatarDisplay(avatarUrl, initial) {
       ? `<img class="avatar-preview" src="${avatarUrl}" alt="프로필 사진" />`
       : `<div class="avatar-preview-fallback">${initial}</div>`;
   }
+
+  const navSm = document.getElementById("navAvatarSm");
+  if (navSm) {
+    navSm.innerHTML = avatarUrl
+      ? `<img src="${avatarUrl}" alt="프로필" />`
+      : initial;
+  }
 }
 
 // ── 프로필 사진 변경 ─────────────────────────────────
